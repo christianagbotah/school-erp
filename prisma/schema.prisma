@@ -1,0 +1,1152 @@
+// ============================================================================
+// iEduPro — School ERP (School ERP project)
+// Owner: Lightworld Technologies Ltd., Ghana
+// Architecture: control plane + tenant plane in one operational store for this
+// environment (single-tenant-per-database semantics enforced by tenantId
+// scoping on every tenant-plane model). Money is stored in integer minor
+// units (pesewas). Currency GHS. Timezone Africa/Accra.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CONTROL PLANE — customer registration, database assignment, identity
+// ============================================================================
+
+model Tenant {
+  id            String   @id @default(uuid())
+  code          String   @unique // short code e.g. LW-DEMO
+  name          String // Lightworld Demo Schools Group
+  legalName     String?
+  contactEmail  String?
+  contactPhone  String?
+  status        TenantStatus @default(TRIAL)
+  plan          String   @default("standard")
+  // authoritative database assignment registry (platform.tenant_database_assignments)
+  dbAssignment  String   @default("school-erp-main") // logical database identifier
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organizations Organization[]
+  users         User[]
+  auditLogs     AuditLog[]
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  OFFBOARDED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  fullName      String
+  phone         String?
+  avatarUrl     String?
+  status        String   @default("active")
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  sessions      Session[]
+  memberships   Membership[]
+  notifications Notification[]
+}
+
+// Role definition lives here; assignment to org/school scope lives in Membership
+model Role {
+  id          String @id @default(uuid())
+  key         String @unique // teacher, parent, cashier, accountant...
+  name        String
+  description  String?
+  isStaff     Boolean @default(true)
+}
+
+model Membership {
+  id         String   @id @default(uuid())
+  userId     String
+  tenantId   String
+  roleKey    String
+  // scope: organization / school / campus / class / route / till
+  scopeType   String   @default("school")
+  scopeId     String?
+  scopeName   String?
+  status      String   @default("active") // active | revoked
+  grantedBy   String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, tenantId, roleKey, scopeType, scopeId])
+  @@index([userId, tenantId])
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  userId     String
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
+  userId     String?
+  action     String // e.g. fee.publish, student.create
+  entityType String
+  entityId   String?
+  before     String? // JSON
+  after      String? // JSON
+  reason     String?
+  ip         String?
+  createdAt  DateTime @default(now())
+  @@index([tenantId, createdAt])
+  @@index([entityType, entityId])
+}
+
+// ============================================================================
+// TENANT PLANE — organization / school / campus hierarchy
+// ============================================================================
+
+model Organization {
+  id          String @id @default(uuid())
+  tenantId    String
+  tenant      Tenant @relation(fields: [tenantId], references: [id])
+  name        String
+  legalName   String?
+  tin         String? // GRA tax identity
+  regNumber   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  schools     School[]
+  @@index([tenantId])
+}
+
+model School {
+  id          String @id @default(uuid())
+  tenantId    String
+  organizationId String
+  name        String
+  shortName   String?
+  type        String @default("private") // private | public | faith | group
+  motto       String?
+  logoUrl     String?
+  address     String?
+  region      String?
+  district    String?
+  phone       String?
+  email       String?
+  website     String?
+  // NaSIA licence evidence
+  licenseNumber String?
+  licenseExpiry DateTime?
+  headteacherName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  campuses     Campus[]
+  academicYears AcademicYear[]
+  billingCategories BillingCategory[]
+  feeItems     FeeItem[]
+  classes      ClassGroup[]
+  students     Student[]
+  staff        Staff[]
+  subjects     Subject[]
+  timetableSlots TimetableSlot[]
+  examSlots    ExamSlot[]
+  announcements Announcement[]
+  vehicles     Vehicle[]
+  routes       Route[]
+  @@index([tenantId, organizationId])
+}
+
+model Campus {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String // Main Campus, Adenta Branch
+  address     String?
+  phone       String?
+  isMain      Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  school       School @relation(fields: [schoolId], references: [id])
+  classes      ClassGroup[]
+  @@index([tenantId, schoolId])
+}
+
+// Billing category: configurable grouping (Pre-school, Lower Primary...) — NOT a class or stage
+model BillingCategory {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String
+  description String?
+  stageMin    Int? // reference stage index for ordering
+  sortOrder   Int @default(0)
+  createdAt   DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  classes ClassGroup[]
+  feeItems FeeItem[]
+  @@index([tenantId, schoolId])
+}
+
+// Academic year + typed periods (terms/semesters)
+model AcademicYear {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String // 2026–2027
+  startDate   DateTime
+  endDate     DateTime
+  isCurrent   Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  school       School       @relation(fields: [schoolId], references: [id])
+  terms        AcademicTerm[]
+  classes      ClassGroup[]
+  feePlans     FeePlan[]
+  invoices     Invoice[]
+  attendanceDays AttendanceDay[]
+  serviceSchedules ServiceSchedule[]
+  payRuns      PayRun[]
+  @@index([tenantId, schoolId])
+}
+
+model AcademicTerm {
+  id          String @id @default(uuid())
+  tenantId    String
+  yearId     String
+  name        String // Term 1
+  sequence    Int
+  startDate   DateTime
+  endDate     DateTime
+  vacationDate DateTime?
+  isCurrent   Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  year AcademicYear @relation(fields: [yearId], references: [id])
+  attendanceDays AttendanceDay[]
+  feePlans FeePlan[]
+  gradebookEntries GradebookEntry[]
+  @@index([tenantId, yearId])
+}
+
+// Scheduled school-day calendar (working days, holidays, closures)
+model AttendanceDay {
+  id          String @id @default(uuid())
+  tenantId    String
+  yearId     String
+  termId     String?
+  date        DateTime
+  dayType     String // school_day | holiday | closure | half_day | special
+  note        String?
+  createdAt   DateTime @default(now())
+
+  year  AcademicYear @relation(fields: [yearId], references: [id])
+  term AcademicTerm? @relation(fields: [termId], references: [id])
+  attendanceRecords AttendanceRecord[]
+  @@unique([tenantId, yearId, date])
+}
+
+// Stage: crèche → KG → primary → JHS (Ghana basic education structure)
+model Stage {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  key         String // early_care | kindergarten | lower_primary | upper_primary | jhs
+  name        String
+  description String?
+  sortOrder   Int @default(0)
+  createdAt   DateTime @default(now())
+  @@unique([tenantId, schoolId, key])
+  @@index([tenantId, schoolId])
+}
+
+// Class group (B3 Sapphire, KG1 A)
+model ClassGroup {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  campusId    String
+  academicYearId String
+  categoryId String? // billing category
+  stageKey    String
+  name        String
+  sectionLabel String? // A / B / Sapphire
+  capacity    Int @default(40)
+  classTeacherId String?
+  roomName    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school       School          @relation(fields: [schoolId], references: [id])
+  campus       Campus          @relation(fields: [campusId], references: [id])
+  academicYear AcademicYear    @relation(fields: [academicYearId], references: [id])
+  category     BillingCategory? @relation(fields: [categoryId], references: [id])
+  enrollments  Enrollment[]
+  subjects     SubjectClass[]
+  timetable    TimetableSlot[]
+  attendanceRecords AttendanceRecord[]
+  gradebookEntries GradebookEntry[]
+  serviceEnrollments ServiceEnrollment[]
+  examClassAssignments ExamClassAssignment[]
+  @@index([tenantId, schoolId, campusId])
+}
+
+// Person: student master record (first/middle/last preserved per brief)
+model Student {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  studentIdNo String @unique // school-issued admission number
+  firstName   String
+  middleName  String?
+  lastName    String
+  preferredName String?
+  originalName String? // as imported, preserved
+  gender      String
+  dateOfBirth DateTime?
+  dobAccuracy String @default("verified") // verified | approximate | unknown
+  photoUrl    String?
+  birthCertNo String?
+  nhisNumber  String?
+  notes       String?
+  status      StudentStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school       School        @relation(fields: [schoolId], references: [id])
+  enrollments  Enrollment[]
+  guardianLinks GuardianStudent[]
+  invoices     Invoice[]
+  payments     Payment[]
+  serviceEnrollments ServiceEnrollment[]
+  attendanceRecords AttendanceRecord[]
+  gradebookEntries GradebookEntry[]
+  examAttempts ExamAttempt[]
+  transportEnrollments TransportEnrollment[]
+  observations KgObservation[]
+  serviceCharges ServiceCharge[]
+  @@index([tenantId, schoolId])
+}
+
+enum StudentStatus {
+  APPLICANT
+  ACTIVE
+  WITHDRAWN
+  GRADUATED
+  TRANSFERRED_OUT
+}
+
+// Enrollment: determines class/campus/period — the authoritative placement
+model Enrollment {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  classId     String
+  rollNo      Int?
+  startDate   DateTime
+  endDate     DateTime? // null = current
+  endReason   String? // promoted | withdrawn | transferred | graduated
+  isCurrent   Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  student   Student    @relation(fields: [studentId], references: [id])
+  classGroup ClassGroup @relation(fields: [classId], references: [id])
+  @@unique([studentId, classId])
+  @@index([tenantId, classId])
+}
+
+// Guardian with separate flags: legal relationship, billing, portal access, pickup
+model Guardian {
+  id          String @id @default(uuid())
+  tenantId    String
+  firstName   String
+  middleName  String?
+  lastName    String
+  phone       String?
+  altPhone    String?
+  email       String?
+  occupation  String?
+  address     String?
+  userId      String? // linked portal account (separate from record)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students    GuardianStudent[]
+  @@index([tenantId])
+}
+
+model GuardianStudent {
+  id          String @id @default(uuid())
+  tenantId    String
+  guardianId  String
+  studentId   String
+  relationship String // mother | father | guardian | sponsor...
+  isLegalGuardian Boolean @default(true)
+  isBillingResponsible Boolean @default(false)
+  hasPortalAccess Boolean @default(false)
+  hasPickupAuthority Boolean @default(true)
+  custodyNotes String?
+  createdAt   DateTime @default(now())
+
+  guardian Guardian @relation(fields: [guardianId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id])
+  @@unique([guardianId, studentId])
+}
+
+// Staff (teachers + non-teaching), linked to a portal User
+model Staff {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  userId      String? // portal login
+  staffIdNo   String @unique
+  firstName   String
+  middleName  String?
+  lastName    String
+  gender      String?
+  phone       String?
+  email       String?
+  position    String
+  isTeaching  Boolean @default(true)
+  department  String?
+  qualifications String?
+  dateOfEmployment DateTime?
+  status      String @default("active")
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school   School    @relation(fields: [schoolId], references: [id])
+  payItems PayrollItem[]
+  timetableSlots TimetableSlot[]
+  @@index([tenantId, schoolId])
+}
+
+// Subjects offered (with provenance: national / school enrichment)
+model Subject {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  code        String // ENG, MATH, SCI...
+  name        String // English Language
+  learningArea String? // CCP learning area name
+  provenance  String @default("national") // national | school | international
+  isBeceSubject Boolean @default(false)
+  sortOrder   Int @default(0)
+  createdAt   DateTime @default(now())
+
+  school       School        @relation(fields: [schoolId], references: [id])
+  classes      SubjectClass[]
+  timetableSlots TimetableSlot[]
+  @@unique([tenantId, schoolId, code])
+  @@index([tenantId, schoolId])
+}
+
+model SubjectClass {
+  id         String @id @default(uuid())
+  tenantId   String
+  subjectId  String
+  classId    String
+  teacherId  String? // staff id
+  createdAt  DateTime @default(now())
+
+  subject Subject    @relation(fields: [subjectId], references: [id])
+  classGroup ClassGroup @relation(fields: [classId], references: [id])
+  gradebookEntries GradebookEntry[]
+  @@unique([subjectId, classId])
+}
+
+// Timetable
+model TimetableSlot {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  classId     String
+  subjectId   String?
+  teacherId   String?
+  dayOfWeek   Int // 1=Mon
+  period      Int
+  startTime   String?
+  endTime     String?
+  room        String?
+  createdAt   DateTime @default(now())
+
+  school   School     @relation(fields: [schoolId], references: [id])
+  classGroup ClassGroup @relation(fields: [classId], references: [id])
+  subject  Subject?   @relation(fields: [subjectId], references: [id])
+  teacher  Staff?     @relation(fields: [teacherId], references: [id])
+  @@index([tenantId, classId, dayOfWeek])
+}
+
+// ============================================================================
+// ATTENDANCE — natural uniqueness boundary (student, date, session)
+// ============================================================================
+
+model AttendanceRecord {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  classId     String
+  calendarDayId String
+  date        DateTime
+  sessionType String @default("morning") // morning | afternoon | full_day
+  status      String // present | absent | late | excused | sick_home | sick_clinic
+  markedById  String? // staff/user
+  markedVia   String @default("web") // web | offline_device | import | pos
+  source      String @default("manual") // manual | qr | rfid
+  note        String?
+  offlineCaptureAt DateTime?
+  syncedAt    DateTime @default(now())
+  correctionHistory String? // JSON array of prior values
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student    Student       @relation(fields: [studentId], references: [id])
+  classGroup ClassGroup    @relation(fields: [classId], references: [id])
+  calendarDay AttendanceDay @relation(fields: [calendarDayId], references: [id])
+  @@unique([tenantId, studentId, date, sessionType])
+  @@index([tenantId, classId, date])
+}
+
+// ============================================================================
+// FEES — policy-driven fee engine. Money = integer pesewas (GHS minor units)
+// ============================================================================
+
+model FeeItem {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  code        String // TUITION, FEEDING, WATER...
+  name        String
+  description String?
+  // accounting mapping
+  revenueAccountCode String? // e.g. 4001 Tuition Revenue
+  categoryId  String? // optional billing-category scope
+  isService    Boolean @default(false) // daily/weekly service vs termly fee
+  serviceCadence String? // daily | weekly | per_trip | per_session | termly | annual | monthly
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school   School            @relation(fields: [schoolId], references: [id])
+  category BillingCategory?  @relation(fields: [categoryId], references: [id])
+  plans    FeePlanItem[]
+  @@unique([tenantId, schoolId, code])
+  @@index([tenantId, schoolId])
+}
+
+// Fee plan = versioned fee structure. Applicability: school/campus/category/class/student
+model FeePlan {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  academicYearId String
+  termId      String?
+  name        String // "2026–2027 Term 1 Fees"
+  version     Int @default(1)
+  status      String @default("draft") // draft | approved | published | superseded
+  scopeType   String @default("school") // school | campus | category | class | student
+  scopeId     String?
+  scopeName   String?
+  approvedById String?
+  approvedAt  DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  term        AcademicTerm? @relation(fields: [termId], references: [id])
+  items       FeePlanItem[]
+  invoices    Invoice[]
+  @@unique([tenantId, schoolId, name, version])
+  @@index([tenantId, schoolId, status])
+}
+
+model FeePlanItem {
+  id          String @id @default(uuid())
+  tenantId    String
+  planId      String
+  feeItemId   String
+  amount      Int // pesewas
+  cadence     String @default("termly") // termly | annual | monthly | weekly | daily | weekdays | per_trip | per_session | once
+  dueDate     DateTime?
+  applicableCategoryIds String? // JSON array
+  isActive    Boolean @default(true)
+
+  plan    FeePlan  @relation(fields: [planId], references: [id])
+  feeItem FeeItem  @relation(fields: [feeItemId], references: [id])
+  invoiceLines InvoiceLine[]
+  @@index([tenantId, planId])
+}
+
+// Discount policies
+model DiscountPolicy {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String // Sibling Discount 10%
+  type        String // percentage | fixed_amount
+  value       Int // percent (0-100) or pesewas
+  scope       String @default("invoice") // fee_item | selected_items | invoice | student_policy
+  feeItemIds  String? // JSON array when scoped
+  reason      String? // sibling | staff_child | scholarship | bursary | hardship | merit | negotiated | early_payment
+  requiresApproval Boolean @default(true)
+  stackable   Boolean @default(false)
+  priority    Int @default(0)
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  invoiceDiscounts InvoiceDiscount[]
+  @@index([tenantId, schoolId])
+}
+
+// Invoice
+model Invoice {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  studentId   String
+  planId      String?
+  invoiceNo   String @unique
+  academicYearId String?
+  termId      String?
+  issueDate   DateTime
+  dueDate     DateTime
+  subtotal    Int @default(0)
+  discountTotal Int @default(0)
+  total       Int @default(0)
+  amountPaid  Int @default(0)
+  status      String @default("outstanding") // draft | outstanding | partially_paid | paid | credited | void
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student     Student       @relation(fields: [studentId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  plan        FeePlan?      @relation(fields: [planId], references: [id])
+  lines       InvoiceLine[]
+  discounts   InvoiceDiscount[]
+  payments    PaymentAllocation[]
+  serviceCharges ServiceCharge[]
+  @@index([tenantId, schoolId, studentId])
+  @@index([tenantId, status])
+}
+
+model InvoiceLine {
+  id          String @id @default(uuid())
+  tenantId    String
+  invoiceId   String
+  feeItemId   String
+  description String
+  quantity    Int @default(1)
+  unitAmount  Int
+  lineTotal   Int
+  cadence     String @default("termly")
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  feePlanItem FeePlanItem? @relation(fields: [feeItemId], references: [id])
+  @@index([tenantId, invoiceId])
+}
+
+model InvoiceDiscount {
+  id          String @id @default(uuid())
+  tenantId    String
+  invoiceId   String
+  policyId    String?
+  label       String
+  type        String // percentage | fixed_amount
+  value       Int
+  amount      Int // computed pesewas
+  appliedOrder Int @default(1)
+  reason      String?
+  approvedBy  String?
+
+  invoice  Invoice         @relation(fields: [invoiceId], references: [id])
+  policy   DiscountPolicy?  @relation(fields: [policyId], references: [id])
+  @@index([tenantId, invoiceId])
+}
+
+// Payments — immutable posted entries with offline receipt support
+model Payment {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  studentId   String
+  paymentRef  String @unique // final reference
+  offlineReceiptNo String? // offline unique receipt (device-serial)
+  deviceSerial String?
+  method      String // cash | momo | bank_transfer | cheque | card | pos
+  provider    String? // hubtel | ...
+  amount      Int // pesewas
+  currency    String @default("GHS")
+  status      String @default("posted") // recorded_locally | pending_verification | posted | failed | reversed | refunded | disputed
+  businessDate DateTime
+  receivedById String?
+  verifiedAt  DateTime?
+  rawProviderEvent String? // JSON evidence
+  note        String?
+  reversalOf  String? // reversed payment id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student   Student             @relation(fields: [studentId], references: [id])
+  allocations PaymentAllocation[]
+  @@index([tenantId, schoolId, studentId])
+  @@index([tenantId, status])
+}
+
+model PaymentAllocation {
+  id          String @id @default(uuid())
+  tenantId    String
+  paymentId   String
+  invoiceId    String
+  feeItemId    String?
+  serviceChargeId String?
+  amount      Int
+  allocatedAt DateTime @default(now())
+
+  payment  Payment  @relation(fields: [paymentId], references: [id])
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
+  @@index([tenantId, paymentId])
+}
+
+// Daily services: enrollment / obligation / delivery / payment kept separate
+model ServiceSchedule {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  feeItemId   String
+  academicYearId String
+  name        String
+  cadence    String @default("daily") // daily | weekly | weekdays
+  weekdays    String? // JSON [1,2,3,4,5]
+  amount      Int
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  enrollments  ServiceEnrollment[]
+  @@index([tenantId, schoolId])
+}
+
+model ServiceEnrollment {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  scheduleId  String
+  classId     String
+  status      String @default("active") // active | paused | cancelled
+  enrolledAt  DateTime @default(now())
+  endDate     DateTime?
+
+  student  Student          @relation(fields: [studentId], references: [id])
+  schedule ServiceSchedule  @relation(fields: [scheduleId], references: [id])
+  classGroup ClassGroup     @relation(fields: [classId], references: [id])
+  charges  ServiceCharge[]
+  @@unique([tenantId, studentId, scheduleId])
+}
+
+model ServiceCharge {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  enrollmentId String
+  invoiceId   String? // when linked to an invoice
+  date        DateTime
+  amount      Int
+  status      String @default("due") // due | paid | prepaid | served | not_served | waived | refunded
+  refundedAmount Int @default(0)
+  createdAt   DateTime @default(now())
+
+  enrollment ServiceEnrollment @relation(fields: [enrollmentId], references: [id])
+  invoice    Invoice?         @relation(fields: [invoiceId], references: [id])
+  student    Student          @relation(fields: [studentId], references: [id])
+  @@unique([tenantId, enrollmentId, date])
+  @@index([tenantId, studentId, date])
+}
+
+// ============================================================================
+// ACCOUNTING — double-entry ledger
+// ============================================================================
+
+model GlAccount {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  code        String // 1000, 4001...
+  name        String
+  type        String // asset | liability | equity | income | expense
+  subtype     String? // cash | bank | momo | receivable | revenue | clearing...
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  journalLines JournalLine[]
+  @@unique([tenantId, schoolId, code])
+}
+
+model JournalEntry {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  entryNo     String @unique
+  date        DateTime
+  memo        String
+  sourceModule String? // fees | payments | payroll | inventory | transport...
+  sourceRef   String? // payment:xxx / invoice:xxx
+  isReversal Boolean @default(false)
+  reversalOfId String?
+  status      String @default("posted") // draft | posted | reversed
+  postedById  String?
+  createdAt   DateTime @default(now())
+
+  lines      JournalLine[]
+  @@index([tenantId, schoolId, date])
+}
+
+model JournalLine {
+  id          String @id @default(uuid())
+  tenantId    String
+  entryId     String
+  accountCode String
+  accountId   String
+  debit       Int @default(0)
+  credit      Int @default(0)
+  memo        String?
+  entityType  String?
+  entityId    String?
+
+  entry     JournalEntry @relation(fields: [entryId], references: [id])
+  account   GlAccount   @relation(fields: [accountId], references: [id])
+  @@index([tenantId, entryId])
+  @@index([tenantId, accountId])
+}
+
+// ============================================================================
+// ASSESSMENT — profiles, gradebook, exams, results
+// ============================================================================
+
+// Assessment profile: versioned, provenance-preserved (official NaCCA/WAEC vs school)
+model AssessmentProfile {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String
+  provenance  String @default("school") // official_nacca | official_waec | school
+  sourceDoc   String? // document reference
+  stageKey    String? // kindergarten | lower_primary | upper_primary | jhs
+  applicableFrom DateTime?
+  applicableTo   DateTime?
+  isImmutable Boolean @default(false) // official packs cannot be edited
+  version     Int @default(1)
+  components  String // JSON: [{code,name,weight,maxScore}]
+  descriptors String? // JSON proficiency bands
+  roundingMode String @default("half_up")
+  createdAt   DateTime @default(now())
+
+  gradebookEntries GradebookEntry[]
+  @@index([tenantId, schoolId])
+}
+
+// Gradebook entry: raw marks preserved, one per student/subject/term/component
+model GradebookEntry {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  classId     String
+  subjectClassId String
+  termId      String
+  profileId   String?
+  component   String // exercise_1 | test_1 | project | observation...
+  rawScore    Int? // null = missing/absent/exempt
+  maxScore    Int
+  status      String @default("marked") // marked | missing | absent | exempt | incomplete | unsubmitted
+  note        String?
+  markedById  String?
+  moderatedAt DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student      Student            @relation(fields: [studentId], references: [id])
+  classGroup   ClassGroup         @relation(fields: [classId], references: [id])
+  subjectClass SubjectClass       @relation(fields: [subjectClassId], references: [id])
+  term         AcademicTerm       @relation(fields: [termId], references: [id])
+  profile      AssessmentProfile? @relation(fields: [profileId], references: [id])
+  @@unique([tenantId, studentId, subjectClassId, termId, component])
+  @@index([tenantId, classId, termId])
+}
+
+// Exam slots: internal exams, mocks, BECE-style
+model ExamSlot {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  name        String // End of Term 1 Exam
+  examType    String @default("end_of_term") // end_of_term | mock | bece_prep | class_test
+  termId      String?
+  date        DateTime?
+  status      String @default("scheduled") // scheduled | ongoing | marking | published
+  createdAt   DateTime @default(now())
+
+  school     School        @relation(fields: [schoolId], references: [id])
+  classAssignments ExamClassAssignment[]
+  @@index([tenantId, schoolId])
+}
+
+model ExamClassAssignment {
+  id          String @id @default(uuid())
+  tenantId    String
+  examSlotId  String
+  classId     String
+  subjectId    String?
+  maxScore    Int @default(100)
+  weight      Int @default(100) // percent contribution
+  createdAt   DateTime @default(now())
+
+  examSlot ExamSlot   @relation(fields: [examSlotId], references: [id])
+  classGroup ClassGroup @relation(fields: [classId], references: [id])
+  attempts  ExamAttempt[]
+
+}
+
+model ExamAttempt {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  examClassAssignmentId String
+  rawScore    Int?
+  maxScore    Int
+  status      String @default("pending") // pending | in_progress | submitted | marked | absent | excused
+  submittedAt DateTime?
+  markedById  String?
+  createdAt   DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+  examClassAssignment ExamClassAssignment @relation(fields: [examClassAssignmentId], references: [id])
+  @@unique([tenantId, studentId, examClassAssignmentId])
+}
+
+// KG observation records (no exam percentages for early years)
+model KgObservation {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  domain      String // physical | cognitive | language | social_emotional | self_help
+  indicator   String
+  observation String
+  evidenceUrl String?
+  observedById String?
+  observedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+  @@index([tenantId, studentId])
+}
+
+// ============================================================================
+// TRANSPORT
+// ============================================================================
+
+model Vehicle {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  plateNumber String @unique
+  make        String?
+  model       String?
+  capacity    Int
+  insuranceExpiry DateTime?
+  roadworthyExpiry DateTime?
+  status      String @default("active") // active | maintenance | retired
+  createdAt   DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  routes Route[]
+  @@index([tenantId, schoolId])
+}
+
+model Route {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  vehicleId   String
+  name        String // Adenta – Madina circula
+  zone        String?
+  stops       String? // JSON [{name, order, eta, coords}]
+  morningStartTime String?
+  afternoonStartTime String?
+  fare        Int? // base fare pesewas
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  school  School                @relation(fields: [schoolId], references: [id])
+  vehicle Vehicle              @relation(fields: [vehicleId], references: [id])
+  enrollments TransportEnrollment[]
+  trips   Trip[]
+  @@index([tenantId, schoolId])
+}
+
+model TransportEnrollment {
+  id          String @id @default(uuid())
+  tenantId    String
+  studentId   String
+  routeId     String
+  direction   String @default("both") // pickup | dropoff | both
+  stopName    String?
+  fareCharged Int?
+  status      String @default("active")
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+
+  student Student @relation(fields: [studentId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id])
+  @@index([tenantId, routeId])
+}
+
+model Trip {
+  id          String @id @default(uuid())
+  tenantId    String
+  routeId     String
+  direction   String // morning | afternoon
+  tripDate    DateTime
+  driverId    String?
+  conductorId String?
+  status      String @default("planned") // planned | in_progress | completed | cancelled
+  events      String? // JSON boarding/alighting log
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  route Route @relation(fields: [routeId], references: [id])
+  @@index([tenantId, routeId, tripDate])
+}
+
+// ============================================================================
+// HR / PAYROLL — Ghana statutory packs (SSNIT Tier 1 13%, Tier 2 5%, PAYE)
+// ============================================================================
+
+model PayRun {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  academicYearId String?
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  month       String // 2026-10
+  status      String @default("draft") // draft | previewed | approved | disbursing | paid | failed
+  rulePackVersion String? // pinned rule-pack version
+  totalGross  Int @default(0)
+  totalDeductions Int @default(0)
+  totalNet    Int @default(0)
+  approvedById String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  items PayrollItem[]
+  @@unique([tenantId, schoolId, month])
+}
+
+model PayrollItem {
+  id          String @id @default(uuid())
+  tenantId    String
+  payRunId    String
+  staffId     String
+  grossSalary Int
+  allowances Int @default(0)
+  overtime    Int @default(0)
+  ssnitTier1  Int @default(0) // 13% employer + 5% employee share modelled per pack
+  ssnitTier2  Int @default(0) // 5% employer
+  paye        Int @default(0)
+  otherDeductions Int @default(0)
+  netPay      Int
+  status      String @default("calculated")
+  snapshot    String? // JSON inputs snapshot
+  createdAt   DateTime @default(now())
+
+  payRun PayRun @relation(fields: [payRunId], references: [id])
+  staff  Staff  @relation(fields: [staffId], references: [id])
+  @@unique([payRunId, staffId])
+}
+
+// ============================================================================
+// COMMUNICATIONS & PORTAL
+// ============================================================================
+
+model Announcement {
+  id          String @id @default(uuid())
+  tenantId    String
+  schoolId    String
+  title       String
+  body        String
+  audience    String @default("all") // all | staff | parents | teachers | students
+  channel     String @default("in_app") // in_app | sms | email | push
+  deliveryStatus String @default("draft") // draft | queued | sent | delivered | failed
+  scheduledAt DateTime?
+  sentById    String?
+  createdAt   DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  @@index([tenantId, schoolId])
+}
+
+model Notification {
+  id          String @id @default(uuid())
+  userId      String
+  title       String
+  body        String
+  type        String @default("info") // info | fee | attendance | result | transport | system
+  isRead      Boolean @default(false)
+  actionUrl   String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, isRead])
+}
+
+// Sync outbox: durable command queue for offline devices (client → server)
+model SyncOperation {
+  id          String @id @default(uuid()) // client operation id (uuid)
+  tenantId    String
+  userId      String?
+  deviceId    String
+  entityType  String // attendance | payment | observation...
+  entityId    String? // client entity id
+  opType      String // create | update | delete
+  payload     String // JSON
+  clientTimestamp DateTime
+  status      String @default("pending") // pending | applied | rejected | conflict
+  serverAppliedAt DateTime?
+  conflictReason String?
+  receivedAt  DateTime @default(now())
+  @@index([tenantId, deviceId, status])
+  @@index([status, receivedAt])
+}

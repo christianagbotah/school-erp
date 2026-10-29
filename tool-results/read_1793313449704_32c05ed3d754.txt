@@ -1,0 +1,573 @@
+   130→   229→   229→- Offline leases for authorized users/devices, local lock/re-authentication, clock-tamper handling, device revocation, secure key handling and bounded offline retention. Revocation takes effect remotely when the device reconnects; do not claim guaranteed immediate remote wiping of a disconnected device.
+   131→   230→   230→- Reject unauthorized posting without silently discarding captured evidence of actual cash received or child handovers. Define restricted evidence recovery/review and explicit resolution before local cleanup can destroy unresolved evidence. Recovering evidence must not give a revoked user new posting or viewing rights.
+   132→   231→   231→- Consistent reconnection behaviour on foreground, app launch, network recovery and manual sync. Browser/iOS background execution is constrained; core correctness must not depend on a background sync API always running.
+   133→   232→   232→- Safe app/schema upgrades while unsent commands exist, mixed client versions, tenant relocation and edge/cloud failover.
+   134→   233→   233→
+   135→   234→   234→### Conflict rules are domain-specific
+   136→   235→   235→
+   137→   236→   236→Never use universal last-write-wins for money, marks, child handovers, stock or approvals.
+   138→   237→   237→
+   139→   238→   238→- Posted money entries are immutable. Corrections are linked reversals/credit notes/reallocations with approvals; duplicates return the original result.
+   140→   239→   239→- Concurrent spending of the same advance balance needs reservation, bounded offline authority or a visible reconciliation queue. Do not create globally available funds twice.
+   141→   240→   240→- Attendance has a natural uniqueness boundary and correction history; resolve competing authorized edits visibly.
+   142→   241→   241→- Marks have ownership, moderation and publication locks; a late offline mark must not silently overwrite a published result.
+   143→   242→   242→- Stock must expose oversubscription/negative-stock exceptions under policy; never invent missing units.
+   144→   243→   243→- Student identity conflicts and relationship changes require a controlled merge/review process.
+   145→   244→   244→- Transport manifests and handover events preserve conflicting evidence and alert authorized staff.
+   146→   245→   245→- Conflicts must be understandable to nontechnical staff, with the original values, proposed changes, actor and resolution history.
+   147→   246→   246→
+   148→   247→   247→Deliver a sync operations console showing pending counts, last success, failures by cause, authorized retry/review actions and edge/node health. Logs must help resolve a school outage without exposing another school's data.
+   149→   248→   248→
+   150→   249→   249→## 7. All users need purpose-built portals
+   151→   250→   250→
+   152→   251→   251→Build tailored home pages, task flows and permissions. A role is not merely the admin dashboard with menu items hidden. Enforce permissions server-side and during sync, using real teaching assignments, guardian links, cashier shifts and route assignments.
+   153→   252→   252→
+   154→   253→   253→| Portal/role | Core responsibilities |
+   155→   254→   254→|---|---|
+   156→   255→   255→| Platform owner/operator | Customers, tenant provisioning, health, versions, support, entitlements, backups, integration readiness and safe support access. |
+   157→   256→   256→| Proprietor/group management/board | Authorized school/branch consolidation, budgets, outcomes and approvals. |
+   158→   257→   257→| Headteacher/school administrator | Admissions, structure, staff, school operations, exceptions, policies and reporting. |
+   159→   258→   258→| Academic head/HOD/exam officer | Curriculum, timetables, lesson review, assessment, moderation, SBA, result publication and candidate records. |
+   160→   259→   259→| Teacher/class teacher | Today's classes, attendance, lessons, evidence, marks, assignments, messages and intervention follow-up. |
+   161→   260→   260→| Parent/guardian/sponsor | Authorized wards, balances, payment, receipts, development/results, attendance, consent, transport and communication. |
+   162→   261→   261→| Student | Appropriate learning activities, materials, assignments, timetable, published results, online/offline exams and messages. |
+   163→   262→   262→| Cashier/authorized collector | Quick search/collection, daily fees, receipts, own shift/till, settlement and correction requests. |
+   164→   263→   263→| Accountant/bursar | Receivables, accounting, budgets, reconciliation, expenses, approvals, reporting and permitted payroll. |
+   165→   264→   264→| Auditor | Read-only evidence, audit filters, reconciliation trails and permitted exports; no implicit posting power. |
+   166→   265→   265→| HR/payroll officer | Staff files, leave/attendance, pay preparation and controlled payroll administration. |
+   167→   266→   266→| Driver | Assigned vehicle/trip, route instructions and safe trip-state actions. |
+   168→   267→   267→| Conductor/bus attendant | Assigned rider manifest, boarding/alighting, authorized collection/handover and incidents. |
+   169→   268→   268→| Transport manager | Fleet, routes, schedules, maintenance, staff, fares, safety and route performance. |
+   170→   269→   269→| Storekeeper/procurement officer | Requisitions, suppliers, receipts, issues, transfers, stock and purchasing. |
+   171→   270→   270→| Librarian | Catalogue, borrowing, returns, inventory and member services. |
+   172→   271→   271→| Caterer/canteen/POS user | Meal entitlement, service delivery, kitchen stock and permitted sales/collections. |
+   173→   272→   272→| Nurse/welfare/safeguarding officer | Restricted wellbeing, incidents, authorized care records and intervention workflows. |
+   174→   273→   273→| Non-teaching staff | Own profile, attendance/shifts, leave, payslips, notices and job-specific tasks. |
+   175→   274→   274→| Applicant/visitor/public website user | Admissions, enquiries, public information and approved event services. |
+   176→   275→   275→
+   177→   276→   276→Allow configurable combinations of roles and delegated authority without turning every staff member into an administrator. Include account/profile management, secure sign-in/recovery, invitations, onboarding, device/session management, MFA for sensitive roles and account history.
+   178→   277→   277→
+   179→   278→   278→Use verified relationships, multiple guardians per learner and separate flags for legal relationship, billing responsibility, portal access and pickup authority. Shared contact details must not automatically grant access. Support custody/access restrictions and multiple children while showing only authorized records. Define cross-school account/membership behaviour explicitly; never infer access to another tenant from a phone number.
+   180→   279→   279→
+   181→   280→   280→## 8. School setup, student records and admissions
+   182→   281→   281→
+   183→   282→   282→Implement:
+   184→   283→   283→
+   185→   284→   284→- Tenant/group/organization/school/campus onboarding; names, contacts, logos, addresses, regulator identifiers, licence evidence, renewal reminders and readiness checklist.
+   186→   285→   285→- Academic years and typed periods (terms, semesters and future blocks), working weeks, holidays, special school days, half days and closure calendars.
+   187→   286→   286→- Stages, categories, classes, sections/streams, shifts/full-day programs, rooms, capacities and promotion paths.
+   188→   287→   287→- Admission enquiries, applications, attachments, assessments/interviews, offers, waiting list, admission fees, approval and enrollment.
+   189→   288→   288→- Re-admission, transfers, withdrawals, graduation, promotion/repetition and historical class/campus assignments.
+   190→   289→   289→- Student/person records with **first name, middle name and last name**, preferred/display name, original imported name, date-of-birth accuracy and configurable identifiers.
+   191→   290→   290→- Guardian selection/linking before relationship details; duplicate detection, contact history, emergency contacts, sponsors and restricted notes.
+   192→   291→   291→- Houses, clubs, teams, extracurricular activities, elected responsibilities and event participation.
+   193→   292→   292→- Document collection, expiry/verification, photo upload/camera capture, IDs/QR cards, configurable forms and batch imports with preview/error handling.
+   194→   293→   293→- A student record timeline joining authorized academic, attendance, finance, transport and welfare events without giving every role access to all of them.
+   195→   294→   294→
+   196→   295→   295→Enrollment determines the applicable school/class/campus/period and policy versions. Do not store the current class on the person as if past reports should change when the learner is promoted.
+   197→   296→   296→
+   198→   297→   297→## 9. Early care, nursery and kindergarten
+   199→   298→   298→
+   200→   299→   299→Provide a purpose-built care/early-learning workspace:
+   201→   300→   300→
+   202→   301→   301→- Safe arrival/departure and authorized pickup, late pickup, absence and emergency contacts.
+   203→   302→   302→- Configurable developmental domains, milestones, observations, portfolios, photos and educator narratives.
+   204→   303→   303→- Age-appropriate play/learning plans, routines and parent communication.
+   205→   304→   304→- Feeding, sleep/rest, toileting and supplies records where the centre uses them; allergy/authorized-care alerts with restricted access.
+   206→   305→   305→- Caregiver assignments, room/group capacity, schedules and handovers.
+   207→   306→   306→- KG integrated themes, curriculum indicators, evidence-based progress and home learning suggestions.
+   208→   307→   307→- Printable and digital progress reports without forcing an exam percentage or GPA onto babies or KG children.
+   209→   308→   308→- Centre policy/licensing/inspection evidence and renewal reminders using actual recorded dates.
+   210→   309→   309→
+   211→   310→   310→Use the Ghana 0–3 ECCD standards to support care planning and developmental tracking. Do not turn those standards into caregiver-performance scores, admission exclusions, or reward/sanction systems for children, educators or caregivers.
+   212→   311→   311→
+   213→   312→   312→Do not use an AI model to diagnose development, invent health advice or determine a child's eligibility. Assist educators with drafts and evidence summaries that they review.
+   214→   313→   313→
+   215→   314→   314→## 10. Curriculum, teaching and lesson notes
+   216→   315→   315→
+   217→   316→   316→Build a full **Teaching Studio**:
+   218→   317→   317→
+   219→   318→   318→- Versioned curriculum browser with grade/subject/strand/sub-strand/content-standard/indicator references and useful Ghana terminology.
+   220→   319→   319→- Schemes of learning/work by year, term and week; pacing, coverage and missed-lesson tracking.
+   221→   320→   320→- Teacher lesson notes/plans with objectives, prior knowledge, indicator codes, resources/TLMs, activities, differentiation, inclusion, assessment and reflection.
+   222→   321→   321→- Appropriate lesson phases for the relevant pack, such as starter, main activities and plenary/reflection; allow school-defined formats and period lengths.
+   223→   322→   322→- Draft → submit → review/return → revise → approve → deliver → reflect/reuse, with HOD/head feedback and version history.
+   224→   323→   323→- Offline drafting, evidence capture and curriculum/resource downloads.
+   225→   324→   324→- Assignments, homework, practical/project tasks, group activities, rubrics, marking/feedback, deadlines and revision.
+   226→   325→   325→- Resource library, reusable plans, school-approved collaboration and contextual AI assistance.
+   227→   326→   326→- Timetables accounting for teacher availability/workload, rooms, breaks, shifts, specialist periods and conflicts; substitution and timetable change notices.
+   228→   327→   327→- Curriculum coverage and learner mastery dashboards with drill-down to actual evidence.
+   229→   328→   328→- CPD/PLC planning, staff coaching and lesson observation workflows where relevant.
+   230→   329→   329→
+   231→   330→   330→AI-generated lessons must cite the curriculum references used, remain editable and clearly indicate draft/review status. A generated citation must resolve to a real source/indicator. Public repositories and AI providers must never become an uncontrolled channel for private learner records.
+   232→   331→   331→
+   233→   332→   332→## 11. Attendance, timekeeping and wellbeing
+   234→   333→   333→
+   235→   334→   334→Support student daily/session/subject attendance and staff attendance/shifts. Include school-configurable statuses such as present, absent, late, excused, **sick at home** and **sick at clinic**, with appropriate reporting mappings.
+   236→   335→   335→
+   237→   336→   336→Include late arrival/early departure, pickup records, leave requests, substitute teachers, correction requests, explanations/evidence, date locks and authorized reopenings. Use actual scheduled school days as denominators. Handle holidays, mid-term admission/withdrawal, shifts, transfers and approved non-school days correctly.
+   238→   337→   337→
+   239→   338→   338→Support manual registers, bulk marking, QR/RFID or device integrations through adapters, and accessible alternatives. Biometric options, if added, require a justified school policy and privacy review rather than being a default requirement.
+   240→   339→   339→
+   241→   340→   340→Generate actionable absence/punctuality alerts, guardian acknowledgements, follow-up cases and trend reports. Queue notifications reliably during outages. Attendance, meal delivery, transport usage and bill generation must be related through explicit policy, not assumed to be identical events.
+   242→   341→   341→
+   243→   342→   342→Include restricted safeguarding/incident/counselling workflows, consent, contact escalation and audit. Provide human-reviewed intervention suggestions without labelling a child from an opaque risk score.
+   244→   343→   343→
+   245→   344→   344→## 12. Assessment, SBA, examinations and results
+   246→   345→   345→
+   247→   346→   346→Deliver the entire assessment lifecycle with separate profiles for early-care/KG observation, primary assessment, JHS school assessment and BECE records.
+   248→   347→   347→
+   249→   348→   348→### SBA and gradebook
+   250→   349→   349→
+   251→   350→   350→- Configure official verified and school-defined assessment profiles with applicability/effective dates, components, raw maxima, weights, minimum evidence, rounding and performance descriptors.
+   252→   351→   351→- Preserve national profiles as immutable source versions; school-defined variants/copies must not overwrite the original profile or its official provenance.
+   253→   352→   352→- Capture class exercises, tests, homework, projects, practicals, portfolios, participation/observations and other pack-supported categories.
+   254→   353→   353→- Provide efficient **SBA filling grids** by teacher/class/subject/period, keyboard entry, bulk import, validation and offline autosave.
+   255→   354→   354→- Retain raw marks and maxima; show exactly how normalized components and final totals are computed.
+   256→   355→   355→- Represent missing, absent, exempt, incomplete and unsubmitted separately from a genuine zero.
+   257→   356→   356→- Handle moderated marks, reassessment, late submission, resits, special accommodations and authorized correction history.
+   258→   357→   357→- Use decimal-safe calculations and tested boundary/rounding rules; do not compute official published marks with floating-point accidents.
+   259→   358→   358→- Support school-requested GPA, averages, proficiency/descriptor reports and raw-score reports as distinct policy modes. Never relabel a locally estimated grade as an official WAEC result.
+   260→   359→   359→
+   261→   360→   360→### Exam creation and administration
+   262→   361→   361→
+   263→   362→   362→- Question banks with curriculum mapping, difficulty/cognitive demand, item type, marking scheme/rubric, provenance, rights and moderation.
+   264→   363→   363→- Blueprints/tables of specification, balanced question selection, randomization, reusable exams, practical/oral/project assessment and accommodations.
+   265→   364→   364→- Internal exams, mocks, revision/practice activities, schedules, rooms, invigilators, seating, attendance and secure paper generation.
+   266→   365→   365→- Student online examinations with durable autosave/resume, accessible navigation, question flagging, submission evidence, controlled attempt policy and explicit offline eligibility.
+   267→   366→   366→- A LAN examination mode for an internet-disconnected school, and authorized device packages for appropriate lower-stakes offline activities.
+   268→   367→   367→- Keep answer keys out of student-delivered packages. Client clocks and local storage are not trustworthy exam security authorities. Define expiry, timers, attempt ownership, tampering signals and dispute/recovery procedures.
+   269→   368→   368→- Distinguish school-authorized high-stakes/online-only assessments from activities suitable for disconnected attempts. Do not claim that client-side anti-cheating guarantees exam integrity.
+   270→   369→   369→- Automatic objective marking, human marking for written/practical work, moderation, appeal and controlled result publication.
+   271→   370→   370→
+   272→   371→   371→For externally supplied assessments, model supplier certification, instrument-specific approval identifier, approved version, validity, verification source/time and supporting records. Where the NaCASP framework applies, require verification of current provider certification and approval of the specific instrument/version before procurement or administration; an absent, expired or unverified approval is not permission to administer. Changing an approved instrument must not retain an approval claim automatically. Separate a teacher's internal draft from a distributed/commercial instrument; confirm current regulatory applicability before offering a shared assessment marketplace.
+   273→   372→   372→
+   274→   373→   373→### Results and external exam support
+   275→   374→   374→
+   276→   375→   375→- Draft → submit → validate → moderate → approve → publish → controlled correction workflow.
+   277→   376→   376→- Report cards, cumulative records, transcripts, broadsheets, SBA sheets, promotion reports, conduct/attendance and approved teacher/head comments.
+   278→   377→   377→- Class/subject/campus/school summaries; configurable ranking/ties or ranking disabled, subject exemptions and historical snapshots.
+   279→   378→   378→- JHS candidate identity/subject/language records, recognized-school/final-year eligibility under the relevant year's rules, bona fide enrollment history, required continuous-assessment records, transferred cumulative/CASS evidence, CASS preparation and official-result imports. Flag missing evidence; never fabricate scores. Distinguish a private-school pupil from WAEC's separate private-candidate entry route.
+   280→   379→   379→- Versioned export adapters for actual current WAEC/GES templates where available, with sample validation and traceable mapping. Do not fabricate an API, claim a CSV is accepted without checking, or label preparation as successful official submission.
+   281→   380→   380→- Reports available through authorized portals, secure verification links/QR where appropriate, print/PDF and permitted spreadsheet exports.
+   282→   381→   381→
+   283→   382→   382→## 13. Fee structures, billing and discounts
+   284→   383→   383→
+   285→   384→   384→Build a policy-driven fee engine that supports ordinary school fees and daily/weekly services without maintaining contradictory balances.
+   286→   385→   385→
+   287→   386→   386→### Fee definitions and applicability
+   288→   387→   387→
+   289→   388→   388→Allow admission/registration, tuition, development, examination, PTA, books, uniforms, ICT, activities, boarding, meals, water, classes, transport and any authorized custom item. Each has its own applicability, timing, accounting mapping, discount rules and approval basis. A school decides the lawful/approved charges applicable to its setting; public-school onboarding must not automatically activate a private-school tuition schedule.
+   290→   389→   389→
+   291→   390→   390→Configure schedules at school, campus, category, class, section/program and individual-student level. Support inheritance with explicit precedence, effective dates and conflict detection. A specific override replaces the intended inherited rule; it must not accidentally bill both. Show a simulation and **why this student is charged this item** before publishing.
+   292→   391→   391→
+   293→   392→   392→Support termly, annual, monthly, weekly, daily, selected weekdays, per-trip, per-session, once-only and installment schedules. Use school calendars, service enrollment, eligibility, proration/rounding and explicit absence/refund policy. Support one school charging water weekly and another charging it daily. Do not let one hardcoded cadence drive every service.
+   294→   393→   393→
+   295→   394→   394→Fee-plan versioning must preserve invoices already issued. Provide dry-run bulk generation, duplicate prevention, approval/publishing, reminders, due dates, late-fee policies where allowed, arrears carry-forward and controlled adjustments.
+   296→   395→   395→
+   297→   396→   396→### Student invoices and discounts
+   298→   397→   397→
+   299→   398→   398→- Itemized student invoices, statements, installment/payment plans, credit notes, debit adjustments and sponsor billing.
+   300→   399→   399→- Fixed-amount or percentage discounts at fee item, selected items, invoice or student-policy level.
+   301→   400→   400→- Sibling, staff-child, scholarship, bursary, hardship, merit, negotiated and early-payment policies.
+   302→   401→   401→- Eligibility, expiry, caps, precedence, stacking/exclusivity, application order and approval limits.
+   303→   402→   402→- Preview the calculation. Distinguish discount, subsidy/sponsor receivable, write-off, refund and payment.
+   304→   403→   403→- Correct rounding allocation for an invoice-wide discount across fee lines.
+   305→   404→   404→- Post-invoice concessions use the appropriate credit/adjustment workflow; never silently rewrite a paid invoice or posted ledger history.
+   306→   405→   405→- Store actor, reason, evidence, approval and the precise rule/version applied.
+   307→   406→   406→
+   308→   407→   407→## 14. Daily fees, meals, water, classes and advance payments
+   309→   408→   408→
+   310→   409→   409→Deliver a fast daily-collection workspace for lunch/feeding, **breakfast**, extra classes, water, transport and custom services.
+   311→   410→   410→
+   312→   411→   411→Model separately:
+   313→   412→   412→
+   314→   413→   413→1. Service enrollment/entitlement.
+   315→   414→   414→2. Scheduled or actual charge/obligation.
+   316→   415→   415→3. Service delivery/usage.
+   317→   416→   416→4. Money received and allocation.
+   318→   417→   417→5. Advance/unallocated funds or receivable balance.
+   319→   418→   418→
+   320→   419→   419→Support prepaid service balances and permitted credit arrangements without confusing a debt with a wallet. Specify whether a balance is restricted by student, item, school and purpose. This is an accounting balance, not automatically a regulated stored-money product.
+   321→   420→   420→
+   322→   421→   421→Provide **one payment input** for an advance amount, then a visible automatic allocation across chosen days/items using a configurable strategy. Show the preview, per-item/day amounts, leftovers, arrears application and resulting balances. Permit authorized correction/reallocation and avoid consuming a service balance twice during offline use.
+   323→   422→   422→
+   324→   423→   423→Handle partial-day attendance, opting out, school closure, missed service, service cancellation, refund/credit policy, insufficient funds, explicit credit limits and retroactive correction. A weekly water charge must be created once for its defined billing period, even if a student is marked present repeatedly.
+   325→   424→   424→
+   326→   425→   425→Daily records and reports must distinguish **due, paid, prepaid, outstanding, served, not served, waived and refunded** by item. Lunch/feeding and extra classes cannot share one undifferentiated due/payment figure.
+   327→   426→   426→
+   328→   427→   427→Cashier, teacher collector, caterer and conductor permissions must reflect assigned duties and collection limits. Build student search, class/group entry, QR/ID lookup, clear receipt printing and student/guardian views. Integrate meal counts with canteen planning and inventory without turning every attendance mark into automatic food consumption.
+   329→   428→   428→
+   330→   429→   429→## 15. Payments, cashier settlement and refunds
+   331→   430→   430→
+   332→   431→   431→Support cash, bank transfer/deposit, cheque with clearance status, card and mobile money through approved providers. Use **Hubtel as an initial Ghana integration**, behind replaceable provider adapters.
+   333→   432→   432→
+   334→   433→   433→### Electronic payments
+   335→   434→   434→
+   336→   435→   435→Use server-created payment intents, unique references, amount/currency/payer/student/invoice validation, verified provider status, idempotent posting and a receipt after the applicable confirmation. A browser redirect, uploaded screenshot or client success callback alone must not mark an invoice paid.
+   337→   436→   436→
+   338→   437→   437→Implement the provider's current documented callback-authentication/status-verification mechanism; do not invent a signature header. Record immutable raw-provider event evidence with appropriate redaction, deduplicate callbacks, accept valid retries, and reconcile missing/out-of-order callbacks through supported status queries.
+   339→   438→   438→
+   340→   439→   439→Track initiated, pending, verified, failed, expired, reversed, refunded and disputed states as appropriate. Distinguish payment acceptance, provider settlement, provider fees, net bank credit and school allocation. Never retry a timed-out transfer blindly.
+   341→   440→   440→
+   342→   441→   441→Current public Hubtel examples are not proof that a merchant has live collection or salary-disbursement access. Inspect the actual merchant-enabled contracts, credentials, limits, verification method and settlement behaviour. Implement adapters and sandbox/contract tests while access is pending, and label live verification accurately.
+   343→   442→   442→
+   344→   443→   443→### In-person collection and cashiers
+   345→   444→   444→
+   346→   445→   445→- Fast student/invoice lookup, arrears/current-item selection, split allocation and multiple methods where allowed.
+   347→   446→   446→- Full, partial and sponsor payments; sibling/family payments with explicit allocation.
+   348→   447→   447→- Unidentified deposits, overpayments, advance balances, allocation/reallocation and refund requests.
+   349→   448→   448→- Unique school/branch/device/series-safe receipts; local offline identifiers cannot collide across cashiers. Preserve original receipt history when a final reference is assigned.
+   350→   449→   449→- Till/shift opening, float, cash-in/out, collection register, expected-versus-counted cash, method totals, handover and deposits.
+   351→   450→   450→- Cashier → supervisor/accountant settlement/verification, shortages/overages, reopen/close permissions and audit.
+   352→   451→   451→- **Modification requests** for corrections, reallocation, void/reversal and receipt changes with reason, before/after evidence and separate authorization.
+   353→   452→   452→- Controlled post-settlement correction; a cashier cannot erase a transaction to make a till balance.
+   354→   453→   453→- Thermal/A4 printing, email/SMS delivery where configured, reprint history and accessible receipt views.
+   355→   454→   454→
+   356→   455→   455→Refunds may be full or partial and must trace original allocations, discounts, services, provider states and accounting effects. Use compensating entries and reconcile actual cash/bank/MoMo movement. Keep refund authorization separate from the person receiving cash where school policy requires it.
+   357→   456→   456→
+   358→   457→   457→Enforce allocation, refund and reversal limits atomically across concurrent commands: cumulative allocations cannot exceed available funds, and cumulative refunds cannot exceed the refundable original amount. Test competing online/offline allocations and simultaneous refund requests; idempotency alone does not stop two different requests from overspending the same balance.
+   359→   458→   458→
+   360→   459→   459→## 16. Full finance and accounting
+   361→   460→   460→
+   362→   461→   461→Implement a real, auditable **double-entry accounting system**, integrated with all operational modules. A revenue dashboard is not a general ledger.
+   363→   462→   462→
+   364→   463→   463→Required capabilities:
+   365→   464→   464→
+   366→   465→   465→- Configurable chart of accounts and accounting policies, fiscal years, periods and opening balances.
+   367→   466→   466→- Separate books by legal entity; school/campus/department/fund/project/cost-centre dimensions and controlled consolidation.
+   368→   467→   467→- Immutable posted journal entries, balanced debits/credits, source-document links, posting dates, approvals and reversals.
+   369→   468→   468→- Student/service receivables, sponsor receivables, customer advances/unearned balances and deferred revenue where the adopted policy requires it.
+   370→   469→   469→- Cash/bank/MoMo/provider clearing accounts; collection fees, settlement matching and reconciliation.
+   371→   470→   470→- Accounts payable, supplier invoices, purchase orders, goods receipts, accruals, payments and credit notes.
+   372→   471→   471→- Expenses, petty cash, requisitions, reimbursement, cash advances and retirement/liquidation.
+   373→   472→   472→- Budgets, commitments/encumbrances where used, department allocations and variance analysis.
+   374→   473→   473→- Payroll liabilities, statutory liabilities, staff loans/advances and salary disbursement reconciliation.
+   375→   474→   474→- Inventory valuation, fixed assets, depreciation, disposal and impairment/adjustments under the selected policy.
+   376→   475→   475→- Donations/grants/restricted funds and projects where a school uses them.
+   377→   476→   476→- Bank-statement imports, matching rules, unresolved items and authorized reconciliation completion.
+   378→   477→   477→- Trial balance, general ledger, income/expenditure or profit/loss, balance sheet, cash flow, aged receivables/payables, fee arrears, budgets and consolidated reports.
+   379→   478→   478→- Drill-down from every material financial report to source documents and journal lines; all exports honor scopes and approvals.
+   380→   479→   479→
+   381→   480→   480→Document journal mappings with worked examples for invoice, discount, advance payment, service consumption, receipt allocation, provider settlement/fee, refund, bad-debt write-off, procurement, stock issue, payroll and interbranch transfer. Cash collected is not automatically revenue; consuming an advance is not a second payment.
+   382→   481→   481→
+   383→   482→   482→Reject unbalanced or duplicate postings. Use balanced compound entries and transaction boundaries. Period locks apply to offline replay too; route late events into an authorized adjustment process rather than rewriting a closed period. Never fix reconciliation by directly changing a balance column.
+   384→   483→   483→
+   385→   484→   484→Configure applicable taxes/levies using verified, effective-dated rules and the school's actual status; do not blindly apply retail taxes to all education charges. Retain original documents and approvals under configured retention policies. Require an accountant-reviewed set of expected journals and financial statements in the final acceptance package.
+   386→   485→   485→
+   387→   486→   486→## 17. HR, staff administration and payroll
+   388→   487→   487→
+   389→   488→   488→Implement staff recruitment/onboarding, contracts, positions/departments, teaching/non-teaching classification, qualifications, documents, attendance/shifts, leave, holidays, performance/CPD, disciplinary records with restricted access, advances/loans, benefits and separation.
+   390→   489→   489→
+   391→   490→   490→Payroll must include salary structures, recurring/one-off earnings, allowances, overtime, unpaid leave, deductions, benefits, pension contributions, PAYE, arrears/retro adjustments, final settlements, payslips and accounting entries. Use configurable residency/worker categories and verified Ghana statutory treatment where relevant.
+   392→   491→   491→
+   393→   492→   492→Build **effective-dated payroll rule packs** with source links, effective periods, tax bands, pension bases/rates/limits, benefits treatment, rounding and reviewer approval. Save the exact rule version and input snapshot with a pay run. A later SSNIT/GRA update must not silently recalculate an old approved payslip.
+   394→   493→   493→
+   395→   494→   494→Workflow: HR changes → payroll preview/validation → authorized review → approval/lock → disbursement instructions → pending/failed/paid reconciliation → payslips/statutory exports → period close. Preserve separate maker/checker authority according to school policy.
+   396→   495→   495→
+   397→   496→   496→Support bank and MoMo disbursement adapters, including Hubtel where the merchant has the required enabled service. Build beneficiary verification, batch totals, duplicate prevention, status queries, partial failure handling, retry authorization and settlement proof. A Hubtel product announcement is not evidence of a public bulk-payroll API or live direct PAYE/SSNIT remittance.
+   398→   497→   497→
+   399→   498→   498→Provide export/import paths for verified current GRA, SSNIT and Tier 2/trustee workflows. Distinguish preparing a return, paying a liability and confirmation by the authority. Where public-school staff are paid centrally, support staff records and reconciliation/import of centrally administered payroll rather than pretending the school controls the government payroll system.
+   400→   499→   499→
+   401→   500→   500→Staff self-service includes profile changes, payslips, leave, attendance, documents, bank/MoMo change requests and approvals. Protect salary and identity data from ordinary staff, students and unrelated administrators.
+   402→   501→   501→
+   403→   502→   502→## 18. Complete transport and fleet management
+   404→   503→   503→
+   405→   504→   504→Build transport as an operational and safety system, integrated with enrollment, billing, attendance, payroll, inventory and accounting.
+   406→   505→   505→
+   407→   506→   506→- Vehicle register, ownership/lease, capacity, seats, accessibility, documents, inspection/insurance/licence expiry and attachments.
+   408→   507→   507→- Drivers/conductors, qualifications, availability, shifts, assignments, incident records and leave cover.
+   409→   508→   508→- Route planning, stops, map/geocoordinates and useful Ghana landmark/address descriptions; zones, ordered stops, schedules and estimated times.
+   410→   509→   509→- Morning/afternoon directions, multiple trips, one-way/return subscriptions, ad hoc authorized riders and route changes.
+   411→   510→   510→- Student/guardian transport enrollment, stop assignment, effective dates, authorized collectors and pickup instructions.
+   412→   511→   511→- Capacity checks, waiting lists, seat assignments where useful, replacement vehicles and staff reassignment.
+   413→   512→   512→- Trip manifests, boarding/alighting, no-show, missed stop, transfer, handover and trip completion with actor/time/evidence.
+   414→   513→   513→- Offline conductor application, downloadable assigned manifest, durable event capture and later conflict-aware sync.
+   415→   514→   514→- GPS integration where enabled, last-fix timestamps, stale/offline state, parent access limited to the appropriate trip, and history/retention controls.
+   416→   515→   515→- Geofenced/approaching-stop alerts, delays, route interruption, breakdown and emergency communication with retry/delivery evidence.
+   417→   516→   516→- Authorized handover verification and end-of-trip vehicle sweep; unmatched riders and incomplete handovers remain visible until resolved.
+   418→   517→   517→- Fuel, odometer, maintenance schedules, work orders, parts/tyres, repairs, breakdowns, vendor costs and fleet availability.
+   419→   518→   518→- Fare rules by route/zone/stop/direction/distance or subscription, daily/weekly/monthly/term charging, discounts, usage-based adjustments and reconciliation.
+   420→   519→   519→- Trip sheets, utilization, punctuality, route costs/profitability where appropriate and safety/incident reports.
+   421→   520→   520→- Routing/ETA optimization with interpretable constraints; never claim an optimized route without checking school hours, capacity and pickup/handover requirements.
+   422→   521→   521→
+   423→   522→   522→Provide driver-safe interaction patterns. A conductor sees assigned routes/riders, not the school's full pupil directory. When connectivity fails, record what happened locally; do not claim a parent or another device received an alert until delivery is confirmed.
+   424→   523→   523→
+   425→   524→   524→## 19. Inventory, procurement, assets, library and canteen
+   426→   525→   525→
+   427→   526→   526→### Inventory/procurement
+   428→   527→   527→
+   429→   528→   528→Support stores/locations, item categories, SKUs/barcodes, units and conversions, opening stock, receipts, issues, returns, transfers, counts, adjustments, damaged/lost/expired stock, reorder levels and stock valuation. Include uniforms, stationery, textbooks, food, cleaning supplies, vehicle parts and other school materials.
+   430→   529→   529→
+   431→   530→   530→Implement requisition → approval → sourcing/quotation → purchase order → partial/full receipt → supplier invoice/matching → payment, with returns/credit notes. Record who received/issued goods and which department/student/vehicle consumed them. Inventory and accounting must reconcile under the selected costing policy. Prevent silent overwrite of competing offline issues.
+   432→   531→   531→
+   433→   532→   532→### Fixed assets/facilities
+   434→   533→   533→
+   435→   534→   534→Asset register, tags, purchase/capitalization details, custodians, location transfers, depreciation, condition, maintenance, warranties, stocktake and disposal. Include room/equipment reservations, facilities defects and maintenance tasks.
+   436→   535→   535→
+   437→   536→   536→### Library
+   438→   537→   537→
+   439→   538→   538→Bibliographic records, copies/barcodes, member eligibility, borrowing/reservation/renewal/returns, overdue/lost/damaged items, school-configurable fines, stocktake and authorized digital resources. Integrate any billed fine with finance once.
+   440→   539→   539→
+   441→   540→   540→### Canteen/POS and boarding where used
+   442→   541→   541→
+   443→   542→   542→Meal plans, menus/allergy flags with restricted access, feeding entitlements, service counts, kitchen requisitions, recipe/unit consumption where useful, POS sales, receipts, stock and cash close. Add boarding/hostel rooms, beds, allocations, roll calls, leave/return and supplies for schools offering boarding.
+   444→   543→   543→
+   445→   544→   544→## 20. Communications, workflow automation and support
+   446→   545→   545→
+   447→   546→   546→Implement in-app, push, email and SMS through provider adapters, with school templates, audience scopes, delivery status, retries, costs/quotas and opt-out/preferences where applicable. Consider Hubtel/Arkesel/Nalo according to verified capability and school choice; do not couple the whole product to one messaging vendor.
+   448→   547→   547→
+   449→   548→   548→Support notices, school calendar/events, parent-teacher communication, appointments, circular acknowledgements, consent forms, polls, complaints, support tickets and emergency broadcasts to authorized audiences.
+   450→   549→   549→
+   451→   550→   550→Build a usable automation/rules designer: trigger → scoped condition → delay/schedule → action → approval if needed → execution history. Examples include absence follow-up, fee reminders, failed payment review, expiring bus documents, missing lesson plans, payroll preparation and low-stock requests.
+   452→   551→   551→
+   453→   552→   552→Actions must be idempotent, tenant-scoped, cancellable where appropriate, rate-limited and observable. Support dry-run/preview, quiet hours, deduplication, escalation and timezone-aware schedules. Do not repeatedly notify a family whose payment has already reconciled. Preserve a human approval step for high-impact money, marks, disclosure and disciplinary actions.
+   454→   553→   553→
+   455→   554→   554→## 21. Dynamic school websites and 1,001 templates
+   456→   555→   555→
+   457→   556→   556→Every school can operate a beautiful dynamic public website, with group/campus pages where useful and secure links into the appropriate portals. Build the website engine and content system as part of the application, not as a detached static demo.
+   458→   557→   557→
+   459→   558→   558→Deliver a gallery of **at least 1,001 genuinely selectable, working website template presets**, with extensibility beyond that number. Reusable sections and a schema-driven renderer are encouraged; 1,001 duplicated codebases are unnecessary. However, changing a name or colour alone does not create a substantively different template.
+   460→   559→   559→
+   461→   560→   560→Each counted template must have a stable identifier, meaningful layout/section composition, supported page types, preview/thumbnail, category/style metadata, editable tokens/content and a valid renderable manifest. Track structural fingerprints and meaningful visual differences. Clearly distinguish complete templates, layout presets and palette variations; do not inflate the template count with empty cards or duplicate colour swaps.
+   462→   561→   561→
+   463→   562→   562→The gallery should cover varied educational identities: early years, modern private schools, public/community schools, faith-based schools, traditional/formal institutions, arts/STEM/technical identities, inclusive schools, school groups and future higher-education presentation needs.
+   464→   563→   563→
+   465→   564→   564→Build a **visual page/site builder** supporting:
+   466→   565→   565→
+   467→   566→   566→- Drag/reorder sections, responsive grids, typography, colour, spacing, menus, header/footer, components and reusable design tokens.
+   468→   567→   567→- Deep editing of text, images/video, buttons, forms, galleries, testimonials, staff, programmes, facilities and page composition.
+   469→   568→   568→- Custom pages, navigation, blogs/news, admissions, vacancies, events, downloads, contact/map, policy pages and public calendars.
+   470→   569→   569→- Draft/review/preview/publish, scheduling, version history, autosave, rollback and staging preview by device size.
+   471→   570→   570→- Template switching with content mapping/backup; never discard a school's published information silently.
+   472→   571→   571→- School-owned custom domains and platform subdomains, certificate/domain readiness and correct tenant routing.
+   473→   572→   572→- SEO, metadata, sitemap, redirects, canonical URLs, structured data where suitable, accessibility and performance.
+   474→   573→   573→- Multilingual content and appropriate Ghanaian-language support, including editable translations.
+   475→   574→   574→- Branding, uploaded logos/photos, rights/provenance for supplied assets and reusable media libraries.
+   476→   575→   575→- Public admissions/enquiry forms connected to actual workflows, spam controls and clear confirmation states.
+   477→   576→   576→- Privacy/consent and publication controls for pupil photos, achievements and identifiable records.
+   478→   577→   577→- Analytics based on appropriate consent and school settings; public visitors must not receive tenant operational data.
+   479→   578→   578→- Safe extensibility/custom blocks, with no untrusted arbitrary script execution in the admin or another school's site.
+   480→   579→   579→
+   481→   580→   580→Lazy-load gallery assets and preview renders. Validate all 1,001 manifests and run automated desktop/mobile render checks; add stratified visual/accessibility review and document its coverage. Template generation must be reproducible and include quality/deduplication reports. Do not claim every template has been manually reviewed unless it has.
+   482→   581→   581→
+   483→   582→   582→Keep public-site publication and the management application decoupled enough that an operational outage or content edit does not expose private data. Offline editors may save drafts; public publication completes when the server confirms it.
+   484→   583→   583→
+   485→   584→   584→## 22. Advanced AI and machine learning
+   486→   585→   585→
+   487→   586→   586→Build useful, demonstrable AI capabilities, not static “AI insights” cards or an unrestricted chatbot bolted onto every page. Combine deterministic rules, optimization, retrieval and trained models where each is appropriate.
+   488→   587→   587→
+   489→   588→   588→Implement and evaluate capabilities such as:
+   490→   589→   589→
+   491→   590→   590→- Curriculum-grounded lesson planning, differentiated activities, TLM suggestions and scheme-of-learning assistance.
+   492→   591→   591→- Question/blueprint/rubric drafting with source mapping and human moderation; no false official-approval claims.
+   493→   592→   592→- Teacher-assisted marking/feedback drafts and report comments, with editable evidence and oversight.
+   494→   593→   593→- Learner mastery analysis, targeted practice and parent/teacher learning support appropriate to age and permissions.
+   495→   594→   594→- Attendance and disengagement pattern detection with explainable intervention recommendations.
+   496→   595→   595→- Enrollment, meal-demand, inventory and cash-flow forecasting where data quality supports it.
+   497→   596→   596→- Collection/anomaly detection for duplicate receipts, suspicious reversals, settlement mismatches and payroll exceptions.
+   498→   597→   597→- Timetable and transport/route optimization with hard operational constraints and comparisons to a baseline.
+   499→   598→   598→- OCR/document extraction and import mapping with confidence, human correction and a source image trail.
+   500→   599→   599→- Natural-language reporting that translates to validated, permission-scoped report/query contracts; no unrestricted SQL from an LLM.
+   501→   600→   600→- A role-aware assistant for parents, pupils and staff, answering from authorized school information with traceable sources.
+   502→   601→   601→- Voice/search/accessibility assistance and appropriate Twi/Ewe/other language support after quality evaluation.
+   503→   602→   602→- Website/admissions content assistance and translation drafts with school review.
+   504→   603→   603→
+   505→   604→   604→### Data and model engineering
+   506→   605→   605→
+   507→   606→   606→Maintain data contracts, feature definitions, provenance, missing-data policy, training pipelines, model/version registry, reproducible evaluation, monitoring, rollback and cost/latency metrics. Define an appropriate baseline and acceptance metric for each model. Use time-aware splits for forecasting, guard against target leakage and evaluate groups/errors relevant to the use case.
+   508→   607→   607→
+   509→   608→   608→If real authorized training data is insufficient, deliver the pipeline, a clearly labelled synthetic test dataset and an honest rules/baseline mode. Do not present fabricated performance, test-on-training metrics or synthetic predictions as validated school intelligence. Any “trained model” claim requires the dataset description, training run, held-out evaluation and actual saved model artifact.
+   510→   609→   609→
+   511→   610→   610→RAG must filter tenant/role/relationship access **before retrieval**, including vector stores, caches and citations. Treat uploaded documents and retrieved content as untrusted data, not instructions. Add prompt-injection and data-exfiltration tests. Tools exposed to AI use the same domain authorization, validation and approval rules as the UI.
+   512→   611→   611→
+   513→   612→   612→Keep school-specific models/embeddings and private records isolated. Cross-school training or use of child data for an external provider requires an appropriate documented data-use basis and explicit controls; it must not happen silently. Define retention, provider configuration, deletion/export handling and operational logs without copying pupil PII into routine telemetry.
+   514→   613→   613→
+   515→   614→   614→Human review governs published grades, admissions decisions, disciplinary action, sensitive disclosures, fees/write-offs and payment execution. A risk score is a support signal, not an automatic reason to penalize a pupil or exclude a family.
+   516→   615→   615→
+   517→   616→   616→Support provider abstraction, deterministic fallback, disabled/opt-out modes, per-school limits and useful offline behaviour. Cache authorized references, run suitable small local models/rules where practical, and queue cloud-only requests honestly. Do not pretend a cloud model is available offline or download a large model without a visible resource decision.
+   518→   617→   617→
+   519→   618→   618→## 23. Cross-platform delivery and user experience
+   520→   619→   619→
+   521→   620→   620→Deliver functioning **web/PWA, Windows, macOS, Android and iOS** clients using shared API/domain contracts and appropriate platform interfaces. A responsive website alone does not satisfy the native-platform requirement, and an uncompiled shell is not a verified native application.
+   522→   621→   621→
+   523→   622→   622→Provide installers/build outputs where the environment permits, platform-specific CI jobs, signing/notarization/store configuration instructions and truthful verification status. iOS/macOS compilation/signing requires the appropriate Apple toolchain/accounts; do not claim signed release artifacts without actually producing them. Make unsigned/test builds and release prerequisites explicit.
+   524→   623→   623→
+   525→   624→   624→All relevant roles must be able to complete their appropriate tasks on their intended devices. Optimize phone flows for parents, teachers and conductors; optimize cashier/accountant desktop flows for speed, keyboard entry and printing. Share design tokens and behaviour, not awkward identical layouts on every screen.
+   526→   625→   625→
+   527→   626→   626→Design requirements:
+   528→   627→   627→
+   529→   628→   628→- A distinctive, polished design system with large readable text, coherent spacing, clear hierarchy and accessible contrast.
+   530→   629→   629→- Mobile-first forms and task-focused cards; usable tables with purposeful responsive behaviour.
+   531→   630→   630→- Collapsible navigation, keyboard access, useful search/command actions, visible focus and pointer cursors for interactive controls.
+   532→   631→   631→- Consistent field labels/value spacing; clean single-row filters/actions on desktop and an orderly mobile layout.
+   533→   632→   632→- Clickable date controls, reliable dropdown layering, correct modals/drawers and logical focus return.
+   534→   633→   633→- Add/edit forms with matching capabilities, meaningful defaults, validation, unsaved-change protection and no simultaneous conflicting forms.
+   535→   634→   634→- Upload/camera/file selection for avatars/logos/documents; do not force users to type URLs for ordinary files.
+   536→   635→   635→- Clear loading, empty, validation, error/retry, denied, offline, pending-sync and conflict states.
+   537→   636→   636→- Search/filter/sort/pagination and permitted CSV/XLSX/PDF/print exports where useful, retaining current filter/scope context.
+   538→   637→   637→- Appropriate bulk actions with preview/confirmation/audit, undo or reversible archive where practical.
+   539→   638→   638→- Localized amounts/dates and readable receipt/report layouts; support dark/light/system themes if they remain accessible.
+   540→   639→   639→- Useful help/onboarding and plain-language labels; keep backend/deployment implementation details out of normal school workflows.
+   541→   640→   640→
+   542→   641→   641→Test touch, keyboard, screen readers, slow devices/networks, screen resizing, rotated screens, print and native permission denial. No dummy success messages, hidden mock APIs or hardcoded chart values in production.
+   543→   642→   642→
+   544→   643→   643→## 24. Platform administration and SaaS operations
+   545→   644→   644→
+   546→   645→   645→Provide customer onboarding/provisioning, tenant lifecycle, organization/school/campus management, configuration defaults, module entitlements, deployment/schema status, storage/AI/integration usage, device/edge health and customer support.
+   547→   646→   646→
+   548→   647→   647→Implement plan/licensing infrastructure and an **optional** platform subscription lifecycle so the business can choose subscription, annual licence, managed/private deployment or another commercial offering. Design this independently for School ERP, record commercial assumptions and keep the business model configurable.
+   549→   648→   648→
+   550→   649→   649→Platform subscription ledgers and merchant settlement must remain separate from school/student accounts. Trial/expiry/overdue handling should be explicit and configurable, with read/export and sensible offline grace rules. A school should not lose historical records or child-safety functions because a subscription state changes without a planned policy.
+   551→   650→   650→
+   552→   651→   651→Support support-ticket escalation, tenant-scoped diagnostics, audit of operator access and time-limited delegated support. Do not give platform staff unrestricted silent access to learner marks, health files, payroll and bank details. Include backup restore requests, data export, incident handling and offboarding.
+   553→   652→   652→
+   554→   653→   653→## 25. Security, privacy and governance
+   555→   654→   654→
+   556→   655→   655→Implement least privilege, secure session lifecycle, rate limiting, credential protection, CSRF/XSS/SSRF/injection controls, secure uploads, dependency updates and audited admin actions. Secrets belong in protected environment/secret stores, not source, generated files, frontend bundles or screenshots.
+   557→   656→   656→
+   558→   657→   657→Model actual controller/processor responsibilities, school privacy contacts, DPC registration evidence, processing purposes, notices, retention, consent/authority where applicable, data requests, corrections, export and lawful deletion/archival. Obtain a Ghana-specific privacy review; a technical checklist is not a certification of legal compliance.
+   559→   658→   658→
+   560→   659→   659→Apply strict child/guardian relationship scopes, restricted health/safeguarding access, protected salary records, encrypted transport and appropriate at-rest/local protection. A guardian's portal access is not unlimited access to another guardian's personal data. Public school websites publish only approved public fields.
+   561→   660→   660→
+   562→   661→   661→Audit high-impact events with actor/membership, scope, device, time, source, reason and changes. Keep audit content readable and protected against ordinary mutation. Avoid copying entire sensitive payloads into logs. Apply retention and access rules to backups, exports, AI traces and offline replicas as well as the main database.
+   563→   662→   662→
+   564→   663→   663→Complete a threat model covering cross-tenant access, guardian linking, hostile offline devices, stale permissions, payment/webhook replay, malicious imports, exam leakage, public-site content, AI retrieval and support impersonation. Verify security behaviour with executable tests and remediation evidence.
+   565→   664→   664→
+   566→   665→   665→## 26. Reporting and analytics
+   567→   666→   666→
+   568→   667→   667→Build role-scoped dashboards, report filters, scheduled reports and a controlled report builder. Cover enrollment/admissions, attendance/punctuality, curriculum/lessons, SBA/results, promotion, arrears/collections/daily services, cashier settlement, finance/statutory preparation, payroll/HR, fleet/trips, inventory/procurement/assets, library, wellbeing and website/admissions conversion.
+   569→   668→   668→
+   570→   669→   669→Provide school/branch/category/class/student and permitted group comparisons. Distinguish school academic periods from accounting periods and collection business dates. Show the period, filters, data freshness and whether offline/unreconciled work is included.
+   571→   670→   670→
+   572→   671→   671→All totals must reconcile to operational records and the ledger as appropriate. Reports must not silently count cancelled documents, duplicate callbacks, withdrawn students or unscheduled school days. Keep historical policy snapshots and drill-down evidence. Provide accessible charts and usable CSV/XLSX/PDF/print output with permission-aware export logging.
+   573→   672→   672→
+   574→   673→   673→## 27. Fresh setup, school data onboarding and portability
+   575→   674→   674→
+   576→   675→   675→The application must install and operate fully from empty databases. No earlier application, source code, database dump, migration project or legacy parity matrix is required to build or accept School ERP.
+   577→   676→   676→
+   578→   677→   677→Provide a guided fresh-school setup, useful configuration presets, fabricated demonstration schools and resettable non-production seed data. Every module must be usable through its own setup screens and workflows rather than requiring a data import.
+   579→   678→   678→
+   580→   679→   679→Also build ordinary product-level CSV/XLSX import and export tools so a future customer can bring authorized school records into the new system. These are onboarding capabilities, not instructions to build on the previous iEduPro application. Any source-specific migration adapter is a separately scoped future integration if the owner later supplies and authorizes a source.
+   581→   680→   680→
+   582→   681→   681→Provide documented import templates for students, guardians, enrollment, staff, subjects, opening balances, inventory and appropriate historical marks. Support column mapping, preview, validation, duplicate checks, sanitized fixtures, row-level errors, batch IDs, idempotent/resumable processing and rollback/reconciliation. Protect relationship, scope and policy-version integrity. Separate feeding/lunch and extra-class obligations/payments by service; never turn an ambiguous imported total into invented money.
+   583→   682→   682→
+   584→   683→   683→Name splitting must preserve the original full name and route ambiguous multi-part names to review; do not pretend the middle token is always a middle name. Reconcile missing/duplicate persons and relationship IDs without silently reassigning a child.
+   585→   684→   684→
+   586→   685→   685→Export complete authorized customer records in documented usable formats for audit, backup, portability and offboarding. Test a round trip using fabricated data without requiring any previous project's schema or code.
+   587→   686→   686→
+   588→   687→   687→## 28. Infrastructure, deployment and reliability
+   589→   688→   688→
+   590→   689→   689→Prepare reproducible local development, CI/test and staging environments with migrations and non-sensitive seeds. Include native-client build jobs and integration contracts. Design separately named deployment resources for School ERP and confirm hosting capacity before deployment; do not assume an old application's database, service, path, domain or port belongs to this project. Leave existing services untouched.
+   591→   690→   690→
+   592→   691→   691→Provide appropriate Nginx/reverse-proxy, process/service management, TLS, worker scheduling, environment templates, health/readiness probes, structured logs and alerts. Supply Docker-based development and/or native service deployment assets appropriate to the chosen production architecture. Avoid imposing Kubernetes or a large microservice estate without a clear operational reason.
+   593→   692→   692→
+   594→   693→   693→Backups must cover tenant/control databases, object storage, configuration and required keys. Define recovery objectives, encrypted/offsite storage, restore drills, tenant-level restore and point-in-time recovery where supported. Test that a restored tenant cannot leak or overwrite another tenant and that old offline commands are handled safely after restore.
+   595→   694→   694→
+   596→   695→   695→Provide migration canaries, rollback/forward-fix strategy, app/DB compatibility, edge updates, school-hours scheduling, no-data-loss restart behaviour and job recovery. Monitor API/database/queue health, sync lag, edge availability, backup freshness, payment reconciliation and critical business exceptions.
+   597→   696→   696→
+   598→   697→   697→Set and test performance budgets on a declared reference environment. Suggested initial targets: responsive local attendance/cashier interaction, p95 under 500 ms for ordinary connected reads at agreed load, and asynchronous generation for large reports. Replace guesses with measured budgets covering realistic student counts, concurrent collectors, attachments and reconnect bursts. Record baseline, test method, hardware and actual results.
+   599→   698→   698→
+   600→   699→   699→## 29. Implementation sequence — keep going until the product is complete
+   601→   700→   700→
+   602→   701→   701→Create a requirements traceability matrix and a dependency-aware implementation plan in the repository. Use phases to organize work, not to reduce the agreed final scope or require a new user prompt after each phase.
+   603→   702→   702→
+   604→   703→   703→Recommended sequence, adaptable after initial research and greenfield architecture design:
+   605→   704→   704→
+   606→   705→   705→1. Check out `christianagbotah/school-erp` in a fresh School ERP workspace, verify its remote and initial history, research requirements, choose the stack, and document the new architecture and release plan.
+   607→   706→   706→2. Tenant routing/provisioning, identity/scopes, audit, data protection and real local/edge sync foundations.
+   608→   707→   707→3. School structure, people/admissions/enrollment, academic periods, student/guardian portals.
+   609→   708→   708→4. Fee engine, daily services, discounts, advances, accounting primitives and cashier/payment vertical slices.
+   610→   709→   709→5. Attendance, Teaching Studio, curriculum packs, SBA/exams/results and learner activities.
+   611→   710→   710→6. Procurement/inventory/assets/library/canteen/boarding, HR/payroll and complete finance controls/reports.
+   612→   711→   711→7. Full transport/fleet/driver/conductor/guardian journeys.
+   613→   712→   712→8. Communications/automation, website CMS/builder and the 1,001-template gallery.
+   614→   713→   713→9. AI capabilities/pipelines, remaining platform operations, cross-platform parity, school-data onboarding/export verification and reliability hardening.
+   615→   714→   714→10. Full end-to-end UAT, independent reviews, review package for Codex and correction rounds.
+   616→   715→   715→
+   617→   716→   716→Deliver vertical slices with real persistence and offline behaviour early. For example, parent payment must reach provider verification, one ledger effect, cashier/accountant visibility and a receipt; it is not finished when a “Pay” button opens a modal.
+   618→   717→   717→
+   619→   718→   718→Use parallel engineering/research if your environment supports it, with clear ownership and integration checks. Prevent overlapping implementations, interface drift and agents repeatedly rewriting the same files.
+   620→   719→   719→
+   621→   720→   720→Keep durable project state: source commit/branch, requirements matrix, decisions, migrations applied, actual tests, blocked external prerequisites, next actions and continuation instructions. If the execution environment/session ends, leave a precise resumable checkpoint rather than claiming the project is complete. On resumption, inspect state and continue the plan without restarting the project.
+   622→   721→   721→
+   623→   722→   722→When a phase passes its relevant checks, automatically start the next phase. Do not wait for the owner or Codex to approve each development milestone. Codex's final review is for the complete release candidate; use internal verification and defect correction to keep progressing toward it. Before a handoff, push the current safe checkpoint, verify the remote SHA and record the first unfinished task so the next execution resumes immediately.
+   624→   723→   723→
+   625→   724→   724→## 30. Definition of done and truthful reporting
+   626→   725→   725→
+   627→   726→   726→### Enterprise-grade and production-ready delivery contract
+   628→   727→   727→
+   629→   728→   728→“Enterprise-grade” and “production-ready” describe demonstrated behaviour, not a UI style or a label. The completed release candidate must satisfy all of the following:
+   630→   729→   729→
+   631→   730→   730→1. **Complete full-stack workflows:** every required module and portal works end to end against real persistence and domain services, with no placeholder actions, hidden mock backends or unfinished manual engineering steps.
+   632→   731→   731→2. **Financial and academic integrity:** double-entry journals reconcile, concurrent allocations/refunds are bounded, provider events post once, and marks/SBA/publication preserve source evidence and approved policy versions.
+   633→   732→   732→3. **Secure customer separation:** tenant/branch/relationship authorization, least privilege, session/device controls, protected uploads, privacy boundaries and audit trails pass positive and adversarial tests across every channel.
+   634→   733→   733→4. **Operational offline reliability:** disconnected devices and school LAN/edge operation survive restarts, conflicting work, reconnect bursts, stale authority, version upgrades and recovery without silent data loss or duplicate business effects.
+   635→   734→   734→5. **Maintainable implementation:** clear module contracts, schema constraints, repeatable migrations, pinned dependencies, useful error handling, code review and meaningful automated tests support continued development.
+   636→   735→   735→6. **Measured performance and scale:** test realistic multi-school workloads, report/queue behaviour, connection limits, native/local responsiveness and recovery bursts against declared budgets. Record measured results and remediation.
+   637→   736→   736→7. **Deployable and recoverable operation:** a clean environment can build, migrate, seed, start and operate the system using the documented tooling; monitoring, backup/restore drills, incident diagnosis and upgrade/rollback procedures are verified.
+   638→   737→   737→8. **Usable cross-platform product:** all required roles can complete their intended web/native tasks with accessible layouts, clear error/offline states, correct printing/files and appropriate device permissions; platform build/test status is evidenced.
+   639→   738→   738→9. **Verified integrations and AI:** actual provider contracts and reconciliation are tested to the access level available; model claims have reproducible evaluation, privacy isolation, human oversight and useful fallbacks.
+   640→   739→   739→10. **Reviewable release:** complete source and documentation are pushed to the required GitHub repository, CI/check results and exact remote commits are recorded, and all defects/external prerequisites are visible in the Codex Review Package.
+   641→   740→   740→
+   642→   741→   741→Resolve release-blocking defects before presenting the product as production-ready. Source-only clients, unrun critical tests and unverified live dependencies remain explicitly blocked items; they do not become passing evidence because documentation was written. Build and validate in production-like staging throughout development. Actual live release follows the final review/authorization process in section 32, without requiring intermediate approval to continue normal implementation.
+   643→   742→   742→
+   644→   743→   743→Track every module with evidence-based states such as:
+   645→   744→   744→
+   646→   745→   745→**Planned → UI only → API/data/workflow implemented → integration verified → offline verified where applicable → cross-platform verified → release candidate reviewed.**
+   647→   746→   746→
+   648→   747→   747→Use an explicit `NOT RUN` or `BLOCKED: prerequisite` where evidence is missing. Do not call source-only Flutter files a working iOS app, written tests passing tests, a mock integration live integration, an accessible homepage a complete product, or a source archive a deployed system.
+   649→   748→   748→
+   650→   749→   749→For each completed workflow provide:
+   651→   750→   750→
+   652→   751→   751→- Working permission-scoped UI and API, constraints, migrations and background/integration effects.
+   653→   752→   752→- Useful positive and negative validation, error/recovery behaviour and audit.
+   654→   753→   753→- Offline/local durability and reconnection evidence where applicable.
+   655→   754→   754→- Seed/demo scenario and automated or documented UAT evidence.
+   656→   755→   755→- Correct reports/exports and cross-module reconciliations.
+   657→   756→   756→- No remaining placeholder action or hidden fake data in the production path.
+   658→   757→   757→
+   659→   758→   758→Missing merchant credentials, Apple signing access, a regulator template, representative real training data or a production toolchain are real external prerequisites. Complete independent code/contract tests and list the exact remaining verification. Do not hide the limitation, block unrelated work, or enable a fake success path to make a dashboard green.
+   660→   759→   759→
+   661→   760→   760→## 31. Mandatory acceptance scenarios
+   662→   761→   761→
+   663→   762→   762→Create executable acceptance coverage and repeatable human walkthroughs for at least the following. Use fabricated demo schools/persons, not a copied production pupil directory.
+   664→   763→   763→
+   665→   764→   764→### Tenancy and authority
+   666→   765→   765→
+   667→   766→   766→1. Provision independent Schools A and B into separate databases; two branches of A share A's database with correct scope/consolidation.
+   668→   767→   767→2. A user cannot read, mutate, export, retrieve through AI, receive a notification from or sync B's data by changing identifiers, cursor, hostname, attachment key or queued command.
+   669→   768→   768→3. Parent sees linked wards only; teacher sees assigned classes/subjects; conductor sees assigned routes; cashier sees the correct till/collection scope; auditor cannot post.
+   670→   769→   769→4. Connection reuse, background jobs, expired roles, school switching and support access preserve isolation.
+   671→   770→   770→5. Move a test tenant between approved database assignments with preserved IDs, validated records, safe cursor/rebootstrap behaviour and documented rollback.
+   672→   771→   771→
+   673→   772→   772→### Fees and finance
+   674→   773→   773→
+   675→   774→   774→6. Configure category-level tuition, a class override and a student concession; preview and generate invoices once with the expected inheritance.
+   676→   775→   775→7. Apply item/invoice percentage and fixed discounts, a scholarship and a post-payment concession; expected receivables and journals reconcile.
+   677→   776→   776→8. Charge water once weekly while lunch is daily and transport per subscribed direction; repeated attendance generation creates no duplicates.
+   678→   777→   777→9. Enter one advance amount and allocate it across days/items, leaving a visible balance. Reverse/cancel one service without duplicating funds or revenue.
+   679→   778→   778→10. Preserve separate feeding and extra-class dues/payments; reconcile fabricated data-entry/import fixtures by student, item, due and payment without requiring any previous application's columns.
+   680→   779→   779→11. Accept cash offline on two devices with unique receipts; restart both; replay their commands repeatedly; reconcile one business effect per actual receipt.
+   681→   780→   780→12. Process duplicate/delayed/out-of-order provider callbacks, a browser success without verification, an amount mismatch and a provider timeout; never incorrectly mark paid or execute a duplicate transfer.
+   682→   781→   781→13. Handle partial payment, family allocation, unallocated deposit, overpayment, provider fee/settlement, partial refund and correction after cashier close.
+   683→   782→   782→14. Complete cashier count/handover/settlement with shortage and approval, and trace the final balance to cash/bank/MoMo clearing and GL.
+   684→   783→   783→15. Close a financial period, then replay an old offline entry and refund; use the controlled adjustment path with balanced journals.
+   685→   784→   784→
+   686→   785→   785→### Academics and care
+   687→   786→   786→
+   688→   787→   787→16. Produce KG observation/progress records without a forced end-term timed exam; create valid primary and JHS assessment profiles separately.
+   689→   788→   788→17. Enter SBA raw marks with a missing mark, zero, exemption, absent learner, rounding boundary and teacher conflict; moderate, publish and correct through authorized history.
+   690→   789→   789→18. Generate report/broadsheet totals from saved policy versions, retain raw JHS/CASS data and keep official external results distinct from estimates.
+   691→   790→   790→19. Draft/review/deliver a curriculum-linked lesson offline; reconnect without losing notes or approving a draft silently.
+   692→   791→   791→20. Take an eligible school/LAN/offline exam, terminate/restart mid-attempt, preserve answers and submission evidence, and reject unauthorized expiry/attempt/key access.
+   693→   792→   792→21. Recompute attendance correctly for holidays, sick-at-home/clinic, late admissions, withdrawals and shifts; verify guardian notification and access scope.
+   694→   793→   793→
+   695→   794→   794→### Operations and platforms
+   696→   795→   795→
+   697→   796→   796→22. Run a bus trip offline, log boarding/alighting and a handover exception, show stale GPS honestly, reconcile events and complete a vehicle sweep.
+   698→   797→   797→23. Complete requisition/purchase/partial receipt/issue/return, stock count and accounting reconciliation with a competing offline issue.
+   699→   798→   798→24. Calculate an approved Ghana payroll fixture under a versioned rule pack, process a partial disbursement failure, and reconcile payslip/statutory liabilities without double payment.
+   700→   799→   799→25. Demonstrate each primary role's meaningful journey on its intended web/native platforms with real persistence, permitted printing/files and error recovery.
+   701→
+   702→[showing lines 100-799 of 886; use offset=800 with limit to continue reading]
