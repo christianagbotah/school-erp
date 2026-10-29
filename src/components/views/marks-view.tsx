@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Save, Loader2 } from 'lucide-react';
 import { ToastIfy } from '@/components/toastify';
+import { cachedFetch } from '@/lib/cached-fetch';
 
 type MarkData = {
   class: { id: string; name: string; stageKey: string };
@@ -34,8 +35,8 @@ export default function MarksView() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetch('/api/classes').then((r) => r.json()).then((d) => {
-      const cls = (d.classes ?? []).filter((c: MarkData['class']) => ['lower_primary', 'upper_primary', 'jhs'].includes(c.stageKey));
+    cachedFetch<{ classes: MarkData['class'][] }>('/api/classes').then((d) => {
+      const cls = (d?.classes ?? []).filter((c) => ['lower_primary', 'upper_primary', 'jhs'].includes(c.stageKey));
       setClasses(cls);
       if (cls[0]) setClassId(cls[0].id);
     });
@@ -59,9 +60,8 @@ export default function MarksView() {
     if (!classId) return;
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/marks?classId=${classId}`, { cache: 'no-store' });
-      if (res.ok) {
-        const d: MarkData = await res.json();
+      const d = await cachedFetch<MarkData>(`/api/marks?classId=${classId}`);
+      if (d) {
         setData(d);
         if (!subjectId && d.subjects[0]) setSubjectId(d.subjects[0].id);
       }
@@ -73,8 +73,8 @@ export default function MarksView() {
     if (!classId || !subjectId) return;
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/marks?classId=${classId}&subjectClassId=${subjectId}`, { cache: 'no-store' });
-      if (res.ok) setData(await res.json());
+      const d = await cachedFetch<MarkData>(`/api/marks?classId=${classId}&subjectClassId=${subjectId}`);
+      if (d) setData(d);
       setLoading(false);
       setEdits({});
     })();

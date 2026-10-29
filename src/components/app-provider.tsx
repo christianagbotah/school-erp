@@ -38,11 +38,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setMe(data);
-      } else {
+        try {
+          localStorage.setItem('iedupro-cache:/api/auth/me', JSON.stringify({ at: Date.now(), data }));
+        } catch { /* quota */ }
+      } else if (res.status === 401) {
         setMe(null);
+        localStorage.removeItem('iedupro-cache:/api/auth/me');
+      } else {
+        throw new Error(`HTTP ${res.status}`);
       }
     } catch {
-      setMe(null);
+      // network failure — fall back to the cached identity so an authorized
+      // user can continue offline work. Server re-verifies on reconnect.
+      try {
+        const raw = localStorage.getItem('iedupro-cache:/api/auth/me');
+        if (raw) {
+          const parsed = JSON.parse(raw) as { at: number; data: Me };
+          if (Date.now() - parsed.at < 1000 * 60 * 60 * 24 * 14) {
+            setMe(parsed.data);
+          } else setMe(null);
+        } else setMe(null);
+      } catch {
+        setMe(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,6 +73,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // register service worker for offline app shell (PWA)
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    }
+  }, []);
 
   // online/offline listeners
   useEffect(() => {

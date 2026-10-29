@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search } from 'lucide-react';
+import { cachedFetch } from '@/lib/cached-fetch';
 
 type StudentRow = {
   id: string; studentIdNo: string; name: string; firstName: string; middleName: string | null; lastName: string;
@@ -25,16 +26,15 @@ export default function StudentsView() {
   const [classes, setClasses] = useState<{ id: string; name: string; campus: string }[]>([]);
 
   useEffect(() => {
-    fetch('/api/classes').then((r) => r.json()).then((d) => setClasses(d.classes ?? []));
+    cachedFetch<{ classes: { id: string; name: string; campus: string }[] }>('/api/classes').then((d) => setClasses(d?.classes ?? []));
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ pageSize: '100', status: 'ACTIVE' });
     if (q) params.set('q', q);
-    const res = await fetch(`/api/students?${params}`, { cache: 'no-store' });
-    if (res.ok) {
-      const d = await res.json();
+    const d = await cachedFetch<{ students: StudentRow[] }>(`/api/students?${params}`);
+    if (d) {
       const all: StudentRow[] = d.students ?? [];
       setStudents(classId === 'all' ? all : all.filter((s) => s.class?.id === classId));
     }

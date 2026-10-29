@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ToastIfy } from '@/components/toastify';
 import { Check, Save, Loader2, CloudOff, Users, CalendarDays } from 'lucide-react';
 import { enqueueOperation, useSyncStore } from '@/lib/client-sync';
+import { cachedFetch } from '@/lib/cached-fetch';
 
 type ClassInfo = { id: string; name: string; section: string | null; stageKey: string; campus: string; enrolled: number };
 type Roster = {
@@ -38,20 +39,19 @@ export default function AttendanceView() {
   const online = useSyncStore((s) => s.online);
 
   useEffect(() => {
-    fetch('/api/classes')
-      .then((r) => r.json())
-      .then((d) => {
-        setClasses(d.classes ?? []);
-        if (d.classes?.[0]) setClassId(d.classes[0].id);
-      });
+    cachedFetch<{ classes: ClassInfo[] }>('/api/classes').then((d) => {
+      if (d?.classes) {
+        setClasses(d.classes);
+        if (d.classes[0]) setClassId(d.classes[0].id);
+      }
+    });
   }, []);
 
   const load = useCallback(async () => {
     if (!classId) return;
     setRoster(null);
-    const res = await fetch(`/api/attendance?classId=${classId}&date=${date}`, { cache: 'no-store' });
-    if (res.ok) {
-      const data: Roster = await res.json();
+    const data = await cachedFetch<Roster>(`/api/attendance?classId=${classId}&date=${date}`);
+    if (data) {
       setRoster(data);
       const m: Record<string, string> = {};
       for (const r of data.roster) m[r.studentId] = r.status ?? '';
