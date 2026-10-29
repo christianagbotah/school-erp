@@ -41,9 +41,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // profiles applicable to this stage
+    // profiles applicable to this stage (primary profiles cover lower AND upper primary)
+    const stageFamily = ['lower_primary', 'upper_primary'].includes(cls.stageKey)
+      ? ['lower_primary', 'upper_primary']
+      : [cls.stageKey];
     const profiles = await db.assessmentProfile.findMany({
-      where: { tenantId: cls.tenantId, OR: [{ stageKey: cls.stageKey }, { stageKey: null }] },
+      where: { tenantId: cls.tenantId, OR: [{ stageKey: { in: stageFamily } }, { stageKey: null }] },
+      orderBy: [{ provenance: 'asc' }, { createdAt: 'asc' }],
     });
 
     return NextResponse.json({

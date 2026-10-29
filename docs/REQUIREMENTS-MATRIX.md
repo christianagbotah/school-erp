@@ -80,7 +80,7 @@ integration verified → offline verified → cross-platform verified → releas
 | 68 | §29 | Vertical slices with real persistence + offline early | DONE (verified) | payment slice verified through GL |
 | 69 | §30 | Truthful per-module states (no inflation) | DONE (verified) | this matrix |
 | 70 | §31 | Acceptance scenarios 1–15 (tenancy/finance) | PARTIAL | covered: isolation (T-2/3), duplicate prevention (F-6/7 partial), offline receipts (F-11 partial), idempotent replay (F-12) |
-| 71 | §31 | Acceptance scenarios 16–32 (academics/ops/resilience) | PARTIAL | covered: SBA raw/exempt/conflict (A-17), attendance correctness (A-21 partial) |
+| 71 | §31 | Acceptance scenarios 16–32 (academics/ops/resilience) | PARTIAL | covered: SBA raw/exempt/conflict (A-17), attendance correctness (A-21 partial), T-30 stale-authority replay REJECTED with evidence preserved (browser-verified), A-18 live weighted totals in gradebook |
 | 72 | §32 | Codex review package | PARTIAL | this docs set + source package; remote push pending owner auth |
 
 **Not-run / blocked register:** Hubtel live verification (no merchant credentials),
