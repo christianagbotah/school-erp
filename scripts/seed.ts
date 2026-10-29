@@ -274,10 +274,12 @@ async function main() {
   }
   console.log(`  ${createdStudents.length} students created`);
 
-  // Link demo parent & student portal users to records — find/create a "Kofi" student
+  // Link demo parent & student portal users to records — deterministic "Kofi Frimpong"
   let kofi = createdStudents.find((s) => s.name.startsWith('Kofi'));
-  if (!kofi) {
-    // create one deterministically: rename first student
+  if (kofi) {
+    await db.student.update({ where: { id: kofi.id }, data: { firstName: 'Kofi', middleName: 'Kwabena', lastName: 'Frimpong' } });
+    kofi = { ...kofi, name: 'Kofi Frimpong' };
+  } else {
     const target = createdStudents[0];
     await db.student.update({ where: { id: target.id }, data: { firstName: 'Kofi', middleName: 'Kwabena', lastName: 'Frimpong' } });
     kofi = { ...target, name: 'Kofi Frimpong' };

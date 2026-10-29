@@ -30,7 +30,7 @@ export default function CashierView() {
   const [posting, setPosting] = useState(false);
   const [receipt, setReceipt] = useState<{ ref: string; amount: string; student: string; offline?: boolean } | null>(null);
   const online = useSyncStore((s) => s.online);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

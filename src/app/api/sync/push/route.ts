@@ -118,17 +118,45 @@ async function applyOperation(
         const dup = await db.payment.findFirst({ where: { tenantId, offlineReceiptNo } });
         if (dup) return { status: 'applied', detail: `duplicate receipt — original ${dup.paymentRef} returned` };
       }
-      const seq = (await db.payment.count({ where: { schoolId: student.schoolId } })) + 1;
-      await db.payment.create({
-        data: {
-          tenantId, schoolId: student.schoolId, studentId,
-          paymentRef: `PAY-${new Date().getFullYear().toString().slice(2)}-${String(seq).padStart(5, '0')}`,
-          offlineReceiptNo: offlineReceiptNo ?? null, deviceSerial: op.deviceId,
-          method, amount: Math.round(amount), status: 'posted',
-          businessDate: new Date(), receivedById: auth.user.id, verifiedAt: new Date(),
-          note: 'synced from offline device',
-        },
-      });
+      // collision-safe ref generation
+      let posted = false;
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3 && !posted; attempt++) {
+        const seq = (await db.payment.count({ where: { schoolId: student.schoolId } })) + 1 + attempt;
+        try {
+          await db.payment.create({
+            data: {
+              tenantId, schoolId: student.schoolId, studentId,
+              paymentRef: `PAY-${new Date().getFullYear().toString().slice(2)}-${String(seq).padStart(5, '0')}`,
+              offlineReceiptNo: offlineReceiptNo ?? null, deviceSerial: op.deviceId,
+              method, amount: Math.round(amount), status: 'posted',
+              businessDate: new Date(), receivedById: auth.user.id, verifiedAt: new Date(),
+              note: 'synced from offline device',
+            },
+          });
+          posted = true;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!posted) {
+        try {
+          await db.payment.create({
+            data: {
+              tenantId, schoolId: student.schoolId, studentId,
+              paymentRef: `PAY-${Date.now().toString(36).toUpperCase()}`,
+              offlineReceiptNo: offlineReceiptNo ?? null, deviceSerial: op.deviceId,
+              method, amount: Math.round(amount), status: 'posted',
+              businessDate: new Date(), receivedById: auth.user.id, verifiedAt: new Date(),
+              note: 'synced from offline device',
+            },
+          });
+          posted = true;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (!posted) throw lastErr instanceof Error ? lastErr : new Error('payment create failed');
       return { status: 'applied' };
     }
 

@@ -26,23 +26,17 @@ export async function POST(req: NextRequest) {
     }
 
     const isOffline = markedVia === 'offline_device';
-    const seq = (await db.payment.count({ where: { schoolId: student.schoolId } })) + 1;
-    const payment = await db.payment.create({
-      data: {
-        tenantId: student.tenantId,
-        schoolId: student.schoolId,
-        studentId,
-        paymentRef: `PAY-${new Date().getFullYear().toString().slice(2)}-${String(seq).padStart(5, '0')}`,
-        offlineReceiptNo: offlineReceiptNo ?? null,
-        deviceSerial: deviceSerial ?? null,
-        method,
-        amount: Math.round(amount),
-        status: isOffline ? 'recorded_locally_confirmed' : 'posted',
-        businessDate: new Date(),
-        receivedById: auth.user.id,
-        verifiedAt: isOffline ? null : new Date(),
-        note: note ?? null,
-      },
+    const payment = await createPaymentSafely({
+      tenantId: student.tenantId,
+      schoolId: student.schoolId,
+      studentId,
+      offlineReceiptNo: offlineReceiptNo ?? null,
+      deviceSerial: deviceSerial ?? null,
+      method,
+      amount: Math.round(amount),
+      status: isOffline ? 'recorded_locally_confirmed' : 'posted',
+      receivedById: auth.user.id,
+      note: note ?? null,
     });
 
     // allocate to invoice if provided
@@ -79,6 +73,39 @@ export async function POST(req: NextRequest) {
     if (e instanceof AuthError) return NextResponse.json({ error: e.message }, { status: e.status });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+}
+
+/** Collision-safe payment creation: sequence-based ref with retry, timestamp fallback. */
+async function createPaymentSafely(data: {
+  tenantId: string; schoolId: string; studentId: string;
+  offlineReceiptNo: string | null; deviceSerial: string | null;
+  method: string; amount: number; status: string; receivedById?: string; note?: string | null;
+}) {
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const seq = (await db.payment.count({ where: { schoolId: data.schoolId } })) + 1 + attempt;
+    try {
+      return await db.payment.create({
+        data: {
+          ...data,
+          paymentRef: `PAY-${new Date().getFullYear().toString().slice(2)}-${String(seq).padStart(5, '0')}`,
+          businessDate: new Date(),
+          verifiedAt: data.status === 'posted' ? new Date() : null,
+        },
+      });
+    } catch (e) {
+      lastErr = e; // likely paymentRef collision from concurrent insert — retry
+    }
+  }
+  // final fallback: timestamp-based unique ref
+  return db.payment.create({
+    data: {
+      ...data,
+      paymentRef: `PAY-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`,
+      businessDate: new Date(),
+      verifiedAt: data.status === 'posted' ? new Date() : null,
+    },
+  });
 }
 
 // GET /api/fees/payments?studentId= — payment history

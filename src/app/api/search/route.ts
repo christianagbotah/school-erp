@@ -10,10 +10,25 @@ export async function GET(req: NextRequest) {
     if (!q || q.length < 2) return NextResponse.json({ students: [] });
     const tenantIds = auth.memberships.map((m) => m.tenantId);
 
+    // parents and students are scoped to linked wards only — never the full directory
+    const isParent = auth.memberships.some((m) => m.roleKey === 'parent');
+    const isStudentOnly = auth.memberships.every((m) => m.roleKey === 'student');
+    let scopeIds: string[] | null = null;
+    if (isParent) {
+      const guardians = await db.guardian.findMany({ where: { userId: auth.user.id }, include: { students: true } });
+      scopeIds = guardians.flatMap((g) => g.students.map((s) => s.studentId));
+      if (scopeIds.length === 0) return NextResponse.json({ students: [] });
+    } else if (isStudentOnly) {
+      const scope = auth.memberships.find((m) => m.roleKey === 'student' && m.scopeType === 'student');
+      scopeIds = scope?.scopeId ? [scope.scopeId] : [];
+      if (scopeIds.length === 0) return NextResponse.json({ students: [] });
+    }
+
     const students = await db.student.findMany({
       where: {
         tenantId: { in: tenantIds },
         status: 'ACTIVE',
+        ...(scopeIds ? { id: { in: scopeIds } } : {}),
         OR: [
           { firstName: { contains: q } },
           { lastName: { contains: q } },
