@@ -2,11 +2,14 @@
    Strategy:
    - Precache the root shell on install.
    - Navigations: network-first, fall back to cached shell (offline reload works).
-   - Same-origin static assets: stale-while-revalidate.
+   - Same-origin static assets: network-first with cache fallback. In dev,
+     Turbopack chunk URLs are not content-hashed, so cache-first would serve
+     stale bundles after a deploy; network-first keeps correctness while the
+     cache still provides full offline capability.
    - API calls are NOT intercepted — app-level cachedFetch + outbox handle data.
 */
-const SHELL_CACHE = 'iedupro-shell-v2';
-const ASSET_CACHE = 'iedupro-assets-v2';
+const SHELL_CACHE = 'iedupro-shell-v3';
+const ASSET_CACHE = 'iedupro-assets-v3';
 const SHELL_URL = '/';
 
 self.addEventListener('install', (event) => {
@@ -45,16 +48,15 @@ self.addEventListener('fetch', (event) => {
 
   if (['GET'].includes(event.request.method)) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const network = fetch(event.request)
-          .then((res) => {
-            const copy = res.clone();
-            caches.open(ASSET_CACHE).then((c) => c.put(event.request, copy));
-            return res;
-          })
-          .catch(() => cached);
-        return cached || network;
-      })
+      fetch(event.request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(ASSET_CACHE).then((c) => c.put(event.request, copy));
+          return res;
+        })
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || Response.error())
+        )
     );
   }
 });

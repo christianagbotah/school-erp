@@ -131,7 +131,7 @@ export const GHANA_PAYROLL_PACK = {
     { upTo: 199999, rate: 0.35 },
     { upTo: Infinity, rate: 0.40 },
   ],
-  tier1InsurableMax: 2026000_00, // GHS 20,260/month max insurable earnings (SSNIT 2026 notice) — in pesewas
+  tier1InsurableMax: 20260_00, // GHS 20,260/month max insurable earnings (SSNIT 2026 notice) — in pesewas
   note: 'Verify SSNIT/GRA notices for the applicable month before a live pay run. Bands saved per pay run.',
 };
 

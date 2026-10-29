@@ -437,6 +437,8 @@ model Staff {
   isTeaching  Boolean @default(true)
   department  String?
   qualifications String?
+  baseSalary  Int? // monthly basic salary, integer pesewas (HR-maintained)
+  allowances  Int @default(0) // monthly fixed allowances, pesewas
   dateOfEmployment DateTime?
   status      String @default("active")
   photoUrl    String?

@@ -8,6 +8,7 @@ import {
   formatMoney, parseMoneyToPesewas, allocateEvenly, allocateProportional, weightedTotal,
 } from '../src/lib/money';
 import { applyDiscounts, GHANA_PAYROLL_PACK_VALUE, computePaye } from '../src/lib/fee-engine-testable';
+import { computePayrollLine, sumPayroll, payrollJournalLines } from '../src/lib/payroll';
 
 describe('money utilities (integer pesewas)', () => {
   test('formats cedi with symbol, separators and 2 decimals', () => {
@@ -126,5 +127,41 @@ describe('Ghana payroll pack (versioned rule pack)', () => {
   test('tier1 employee share is 5% of basic', () => {
     expect(GHANA_PAYROLL_PACK_VALUE.ssnitTier1.employeeRate).toBe(0.05);
     expect(GHANA_PAYROLL_PACK_VALUE.ssnitTier2.employerRate).toBe(0.05);
+  });
+});
+
+describe('payroll engine — Ghana statutory computation', () => {
+  test('computePayrollLine: net = gross − tier1 employee − PAYE', () => {
+    const line = computePayrollLine({ staffId: 's1', staffName: 'Test', position: 'Teacher', baseSalary: 3000_00, allowances: 200_00 });
+    expect(line.gross).toBe(3200_00);
+    expect(line.ssnitTier1Employee).toBe(15000); // 5% of basic (₵3,000)
+    expect(line.ssnitTier2Employer).toBe(15000); // 5% employer cost
+    expect(line.net).toBe(line.gross - line.ssnitTier1Employee - line.paye);
+  });
+
+  test('computePayrollLine: SSNIT insurable basic is capped at the statutory maximum', () => {
+    const huge = computePayrollLine({ staffId: 's2', staffName: 'Exec', position: 'Director', baseSalary: 50_000_00, allowances: 0 });
+    expect(huge.ssnitTier1Employee).toBe(20260_00 * 0.05); // capped at ₵20,260 × 5% = ₵1,013
+  });
+
+  test('sumPayroll: aggregates across lines and headcount', () => {
+    const a = computePayrollLine({ staffId: 'a', staffName: 'A', position: 'T', baseSalary: 2000_00, allowances: 0 });
+    const b = computePayrollLine({ staffId: 'b', staffName: 'B', position: 'T', baseSalary: 4000_00, allowances: 500_00 });
+    const totals = sumPayroll([a, b]);
+    expect(totals.headcount).toBe(2);
+    expect(totals.gross).toBe(a.gross + b.gross);
+    expect(totals.net).toBe(a.net + b.net);
+    expect(totals.deductions).toBe(a.totalDeductions + b.totalDeductions);
+  });
+
+  test('payrollJournalLines: always balances Dr = Cr', () => {
+    const a = computePayrollLine({ staffId: 'a', staffName: 'A', position: 'T', baseSalary: 3500_00, allowances: 300_00 });
+    const b = computePayrollLine({ staffId: 'b', staffName: 'B', position: 'T', baseSalary: 2800_00, allowances: 150_00 });
+    const totals = sumPayroll([a, b]);
+    const lines = payrollJournalLines(totals, '2026-10');
+    const dr = lines.reduce((s, l) => s + (l.debit ?? 0), 0);
+    const cr = lines.reduce((s, l) => s + (l.credit ?? 0), 0);
+    expect(dr).toBe(cr);
+    expect(dr).toBe(totals.gross + totals.tier2Employer);
   });
 });

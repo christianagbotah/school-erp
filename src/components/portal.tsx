@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/components/app-provider';
 import LoginPage from '@/components/login-page';
 import { AppShell } from '@/components/app-shell';
@@ -11,17 +12,44 @@ import FeesView from '@/components/views/fees-view';
 import CashierView from '@/components/views/cashier-view';
 import StudentsView from '@/components/views/students-view';
 import SyncConsoleView from '@/components/views/sync-console-view';
+import AnalyticsView from '@/components/views/analytics-view';
+import ReportCardsView from '@/components/views/report-cards-view';
+import PayrollView from '@/components/views/payroll-view';
+import DebtorsView from '@/components/views/debtors-view';
+import TimetableView from '@/components/views/timetable-view';
+import AnnouncementsView from '@/components/views/announcements-view';
+import type { ViewKey } from '@/components/command-palette';
 
-export type ViewKey = 'dashboard' | 'attendance' | 'marks' | 'fees' | 'cashier' | 'students' | 'sync';
+const NAV: Record<ViewKey, { label: string; roles: string[] }> = {
+  dashboard: { label: 'Overview', roles: ['*'] },
+  analytics: { label: 'Analytics', roles: ['headteacher', 'academic_head', 'proprietor', 'bursar', 'accountant'] },
+  attendance: { label: 'Attendance', roles: ['teacher', 'class_teacher', 'academic_head', 'headteacher'] },
+  marks: { label: 'SBA Gradebook', roles: ['teacher', 'class_teacher', 'academic_head', 'headteacher'] },
+  reports: { label: 'Report Cards', roles: ['teacher', 'class_teacher', 'academic_head', 'headteacher', 'proprietor', 'bursar', 'parent', 'student'] },
+  timetable: { label: 'Timetable', roles: ['*'] },
+  students: { label: 'Students', roles: ['headteacher', 'academic_head', 'proprietor', 'teacher', 'class_teacher', 'accountant'] },
+  fees: { label: 'Fees & Invoices', roles: ['accountant', 'bursar', 'headteacher', 'proprietor', 'cashier', 'parent', 'student'] },
+  cashier: { label: 'Collections', roles: ['cashier', 'accountant', 'bursar', 'headteacher'] },
+  debtors: { label: 'Debtors', roles: ['bursar', 'accountant', 'headteacher', 'proprietor', 'cashier'] },
+  payroll: { label: 'Payroll', roles: ['bursar', 'accountant', 'headteacher', 'proprietor'] },
+  notices: { label: 'Notices', roles: ['*'] },
+  sync: { label: 'Sync Console', roles: ['*'] },
+};
 
-const NAV: Record<ViewKey, { label: string; roles: string[]; icon: string }> = {
-  dashboard: { label: 'Overview', roles: ['*'], icon: 'home' },
-  attendance: { label: 'Attendance', roles: ['teacher', 'class_teacher', 'academic_head', 'headteacher'], icon: 'check' },
-  marks: { label: 'SBA Gradebook', roles: ['teacher', 'class_teacher', 'academic_head', 'headteacher'], icon: 'book' },
-  fees: { label: 'Fees & Invoices', roles: ['accountant', 'bursar', 'headteacher', 'proprietor', 'cashier', 'parent', 'student'], icon: 'wallet' },
-  cashier: { label: 'Collections', roles: ['cashier', 'accountant', 'bursar', 'headteacher'], icon: 'coins' },
-  students: { label: 'Students', roles: ['headteacher', 'academic_head', 'proprietor', 'teacher', 'class_teacher', 'accountant'], icon: 'users' },
-  sync: { label: 'Sync Console', roles: ['*'], icon: 'refresh' },
+const VIEWS: Record<ViewKey, React.ComponentType> = {
+  dashboard: DashboardView,
+  analytics: AnalyticsView,
+  attendance: AttendanceView,
+  marks: MarksView,
+  reports: ReportCardsView,
+  timetable: TimetableView,
+  students: StudentsView,
+  fees: FeesView,
+  cashier: CashierView,
+  debtors: DebtorsView,
+  payroll: PayrollView,
+  notices: AnnouncementsView,
+  sync: SyncConsoleView,
 };
 
 export function Portal() {
@@ -40,16 +68,22 @@ export function Portal() {
   const userRoles = me.roles.length > 0 ? me.roles : [];
   const canSee = (key: ViewKey) => NAV[key].roles.includes('*') || userRoles.some((r) => NAV[key].roles.includes(r));
   const availableViews = (Object.keys(NAV) as ViewKey[]).filter(canSee);
+  const currentView = availableViews.includes(view) ? view : 'dashboard';
+  const View = VIEWS[currentView];
 
   return (
-    <AppShell view={view} setView={setView} availableViews={availableViews}>
-      {view === 'dashboard' && <DashboardView />}
-      {view === 'attendance' && <AttendanceView />}
-      {view === 'marks' && <MarksView />}
-      {view === 'fees' && <FeesView />}
-      {view === 'cashier' && <CashierView />}
-      {view === 'students' && <StudentsView />}
-      {view === 'sync' && <SyncConsoleView />}
+    <AppShell view={currentView} setView={setView} availableViews={availableViews}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentView}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
+          <View />
+        </motion.div>
+      </AnimatePresence>
     </AppShell>
   );
 }

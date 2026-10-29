@@ -24,18 +24,27 @@ project with its own schema, design system, tests and documentation.
 | SBA gradebook: profiles (KG observation / primary / JHS CCP), raw marks, weighted totals, missing/absent/exempt distinction, published-marks protection | **Implemented + tested** | `/api/marks` |
 | KG observation records (no exam percentages for early years) | **Implemented + seeded** | `KgObservation` model |
 | Transport: vehicles, routes, stops, enrollment, trips | **Implemented + seeded** | schema + seed |
-| Payroll: versioned Ghana rule pack (SSNIT 13%/5%/5%, GRA PAYE bands) | **Implemented (rule pack + computation, tested); pay-run workflow = next phase** | `ghana-config.ts` |
+| Payroll: versioned Ghana rule pack (SSNIT 13%/5%/5%, GRA PAYE bands) | **Implemented + tested** (rule pack, computation, journal posting) | `ghana-config.ts`, `src/lib/payroll.ts` |
+| **Pay-run workflow** (new): live preview → save → approve → immutable run + balanced journal (Dr 5001 / Cr 2100 · 2110 · 2000) | **Implemented + browser-verified** | `/api/payroll`, Payroll view |
+| **Report cards** (new): terminal reports with SBA weighted totals, NaCCA-style grade bands, class position, attendance & fees position, auto remarks, KG observation mode, printable A4 | **Implemented + browser-verified** (staff any learner; parents/students scoped to wards) | `/api/report-cards`, Report Cards view |
+| **Analytics** (new): attendance trend, enrollment by stage/gender, collections by month & channel, arrears and attendance by class | **Implemented + browser-verified** | `/api/analytics`, Analytics view (recharts) |
+| **Debtors & arrears** (new): aging buckets (current / 1–30 / 31–60 / 60+), guardian contacts, printable report + reminder letters | **Implemented + browser-verified** | `/api/finance/debtors`, Debtors view |
+| **Timetable** (new): weekly grid P1–P6 Mon–Fri, subject/teacher/room editing (academic head+), teacher personal schedule, printable | **Implemented + browser-verified** (slot edited SCI → FRENCH) | `/api/timetable`, Timetable view |
+| **Notices & announcements** (new): compose with audience targeting, notification fan-out | **Implemented + browser-verified** (8 recipients notified) | `/api/announcements`, Notices view |
+| **Command palette ⌘K** (new): view navigation, sync, theme, sign-out | **Implemented + browser-verified** | `src/components/command-palette.tsx` |
+| **Notification center** (new): bell with unread badge, mark-all-read, 45s polling | **Implemented + browser-verified** | `src/components/notification-bell.tsx` |
+| **Dark mode** (new): light/dark toggle via next-themes, persisted | **Implemented + browser-verified** | `ThemeProvider`, shell toggle |
 | Ghana education config: stages, subjects, BECE flag distinctions, phone normalization, ₵ formatting | **Implemented** | `src/lib/ghana-config.ts`, `src/lib/money.ts` |
 | PWA: manifest, icons, installable, offline badge | **Implemented** | `public/manifest.webmanifest` |
 
 ## Honest status of NOT-yet-implemented scope (from the master brief)
 
 These are **planned, not claimed as done**: examination administration UI (models exist),
-report card generation, transport conductor app, inventory/procurement, library, canteen,
-full payroll pay-run workflow, communications providers (SMS/email adapters), the 1,001
+transport conductor app, inventory/procurement, library, canteen,
+communications providers beyond in-app (SMS/email adapters), the 1,001
 website templates, native Flutter clients, LAN/edge server deployment, AI features,
-waived/refunded daily-service states, arrears reminders, timetabling engine, admissions
-workflow UI, HR leave management, bank reconciliation, and full Hubtel integration
+waived/refunded daily-service states, timetabling conflict engine (basic slot editing only),
+admissions workflow UI, HR leave management, bank reconciliation, and full Hubtel integration
 (merchant credentials not available in this environment — explicitly BLOCKED, not faked).
 
 See `docs/REQUIREMENTS-MATRIX.md` for the traceability matrix with per-module states.
@@ -46,8 +55,9 @@ See `docs/REQUIREMENTS-MATRIX.md` for the traceability matrix with per-module st
 bun install
 bun run db:push          # apply schema
 bunx tsx scripts/seed.ts # demo school (fabricated data, no real records)
+bunx tsx scripts/seed-extras.ts # salaries, full timetables, SBA marks, notifications
 bun run dev              # http://localhost:3000
-bun test tests/domain.test.ts tests/api.test.ts   # 29 tests
+bun test tests/domain.test.ts tests/api.test.ts   # 33 tests (server must be running)
 bun run lint
 ```
 
@@ -75,8 +85,7 @@ bun run lint
 
 ## Repository status
 
-Work is committed locally on `main` (7 commits at this milestone). The target GitHub
-repository exists but is **empty**, and this environment has **no push credentials**
-(no SSH keys, no tokens). Per the master brief §2, work continued locally with a
-complete source package rather than pushing elsewhere or fabricating a remote SHA.
-See `docs/GITHUB-PUSH.md` for the exact owner procedure to publish these commits.
+Work is committed on `main` and **pushed to github.com/christianagbotah/school-erp**
+(see `git log` for the full history; this milestone adds payroll pay-runs, report cards,
+analytics, debtors aging, timetables, notices, command palette, notification center,
+dark mode — 33 tests passing).
