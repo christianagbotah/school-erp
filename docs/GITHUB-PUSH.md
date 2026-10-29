@@ -15,10 +15,12 @@
 All commits are on branch `main` in this workspace:
 
 ```
-d0a8d40 fix(security+finance): parent/student scoping on search (isolation gap found by tests), collision-safe payment refs under concurrency, demo family naming; test suites: 29 passing (domain money/discount/payroll + API authz/isolation/idempotency/conflict)
-9efcb7c feat(offline): PWA service worker app shell, cached reads, offline auth continuation; verified end-to-end: offline attendance capture → durable outbox → reconnect sync → visible domain conflicts; cashier payment posts with balanced double-entry journal
-35c65da feat(ui): complete portal frontend — role-based SPA shell, login, dashboard, attendance register with offline queue, SBA gradebook, cashier collections with offline receipts, fees, students, sync console; iEduPro brand (emerald)
-3a18cef feat(api): auth, tenancy-scoped domain APIs (students, attendance, marks, fees, payments, search, dashboard), offline sync push/pull with idempotency + domain conflict rules, Ghana config pack, money utils, fee engine
+fb0603c fix(marks): primary assessment profiles match upper+lower primary stages; matrix evidence update
+3d88e07 docs: README, architecture record (ADRs), requirements traceability matrix, GitHub push instructions
+d0a8d40 fix(security+finance): parent/student scoping on search (isolation gap found by tests), collision-safe payment refs under concurrency, demo family naming; 29 tests passing
+9efcb7c feat(offline): PWA service worker shell, cached reads, offline auth continuation; end-to-end verified: offline capture → durable outbox → sync → visible domain conflicts; cashier payment posts balanced double-entry journal
+35c65da feat(ui): role-based SPA portal — login, dashboards, attendance register with offline queue, SBA gradebook, cashier collections with offline receipts, fees, students, sync console
+3a18cef feat(api): tenancy-scoped domain APIs + offline sync push/pull with idempotency and domain conflict rules; Ghana config pack; money utils; fee engine
 38cbbf1 feat(schema): complete iEduPro domain schema — control plane, tenancy, academics, fees, finance, assessment, transport, HR, sync
 9750e49 Initial commit
 
