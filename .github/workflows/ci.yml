@@ -10,6 +10,9 @@ jobs:
   test:
     name: Lint + seed + integration tests
     runs-on: ubuntu-latest
+    env:
+      # SQLite path relative to prisma/schema.prisma — portable across machines
+      DATABASE_URL: file:../db/custom.db
     steps:
       - uses: actions/checkout@v4
 
