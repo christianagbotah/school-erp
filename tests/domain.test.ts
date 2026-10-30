@@ -165,3 +165,112 @@ describe('payroll engine — Ghana statutory computation', () => {
     expect(dr).toBe(totals.gross + totals.tier2Employer);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Financial statements — trial balance, income statement, balance sheet
+// ---------------------------------------------------------------------------
+import {
+  buildTrialBalance, buildIncomeStatement, buildBalanceSheet,
+  type LedgerAccount, type LedgerEntry,
+} from '../src/lib/finance-reports';
+
+const ACCOUNTS: LedgerAccount[] = [
+  { code: '1000', name: 'Cash on Hand', type: 'asset' },
+  { code: '1100', name: 'Accounts Receivable', type: 'asset' },
+  { code: '2100', name: 'SSNIT Payable', type: 'liability' },
+  { code: '3000', name: 'Accumulated Fund', type: 'equity' },
+  { code: '4001', name: 'Tuition Revenue', type: 'income' },
+  { code: '5001', name: 'Salaries and Wages', type: 'expense' },
+];
+
+// Verified fixture (arithmetic checked with bun before committing to expectations):
+// E1  Jan 10  invoice issued: Dr Receivable 1200 / Cr Tuition 1200
+// E2  Jan 15  fees collected:  Dr Cash 800      / Cr Receivable 800
+// E3  Mar 01  payroll:         Dr Salaries 600  / Cr Cash 500 + Cr SSNIT 100
+// E4  Apr 01  DRAFT            — must never appear in any statement
+const ENTRIES: LedgerEntry[] = [
+  { date: '2026-01-10', status: 'posted', lines: [
+    { accountCode: '1100', debit: 1200_00, credit: 0 },
+    { accountCode: '4001', debit: 0, credit: 1200_00 },
+  ]},
+  { date: '2026-01-15', status: 'posted', lines: [
+    { accountCode: '1000', debit: 800_00, credit: 0 },
+    { accountCode: '1100', debit: 0, credit: 800_00 },
+  ]},
+  { date: '2026-03-01', status: 'posted', lines: [
+    { accountCode: '5001', debit: 600_00, credit: 0 },
+    { accountCode: '1000', debit: 0, credit: 500_00 },
+    { accountCode: '2100', debit: 0, credit: 100_00 },
+  ]},
+  { date: '2026-04-01', status: 'draft', lines: [
+    { accountCode: '1000', debit: 99_00, credit: 0 },
+    { accountCode: '4001', debit: 0, credit: 99_00 },
+  ]}, // draft must never appear in statements
+];
+
+describe('financial statements — trial balance', () => {
+  // Contract (mirrors the API route): the caller passes lines of POSTED entries only.
+  const postedLines = ENTRIES.filter((e) => e.status === 'posted').flatMap((e) => e.lines);
+
+  test('totals tie out and report balanced for a consistent ledger', () => {
+    const tb = buildTrialBalance(ACCOUNTS, postedLines);
+    expect(tb.balanced).toBe(true);
+    expect(tb.totals.debits).toBe(tb.totals.credits);
+    expect(tb.totals.debits).toBe(2600_00); // 1200 + 800 + 600
+  });
+
+  test('detects an out-of-balance ledger', () => {
+    const bad = [...postedLines, { accountCode: '1000', debit: 123, credit: 0 }];
+    const tb = buildTrialBalance(ACCOUNTS, bad);
+    expect(tb.balanced).toBe(false);
+    expect(tb.totals.debits - tb.totals.credits).toBe(123);
+  });
+
+  test('cash nets to the expected debit balance (800 − 500)', () => {
+    const tb = buildTrialBalance(ACCOUNTS, postedLines);
+    const cash = tb.rows.find((r) => r.code === '1000')!;
+    expect(cash.balanceDebit).toBe(300_00);
+    expect(cash.balanceCredit).toBe(0);
+  });
+
+  test('receivable keeps a positive debit balance after part payment', () => {
+    const tb = buildTrialBalance(ACCOUNTS, postedLines);
+    const ar = tb.rows.find((r) => r.code === '1100')!;
+    expect(ar.balanceDebit).toBe(400_00); // 1200 invoiced − 800 collected
+  });
+});
+
+describe('financial statements — income statement', () => {
+  test('net income = revenue − expenses for the full period', () => {
+    const is = buildIncomeStatement(ACCOUNTS, ENTRIES, { from: '2026-01-01', to: '2026-12-31' });
+    expect(is.totalRevenue).toBe(1200_00);
+    expect(is.totalExpense).toBe(600_00);
+    expect(is.netIncome).toBe(600_00);
+  });
+
+  test('excludes entries outside the period and non-posted entries', () => {
+    const is = buildIncomeStatement(ACCOUNTS, ENTRIES, { from: '2026-02-01', to: '2026-12-31' });
+    expect(is.totalRevenue).toBe(0); // invoice entry was January; April draft ignored
+    expect(is.totalExpense).toBe(600_00);
+    expect(is.netIncome).toBe(-600_00); // deficit shown honestly
+  });
+});
+
+describe('financial statements — balance sheet', () => {
+  test('assets equal liabilities + equity + net income to date', () => {
+    const bs = buildBalanceSheet(ACCOUNTS, ENTRIES, '2026-12-31');
+    expect(bs.balanced).toBe(true);
+    expect(bs.totals.assets).toBe(700_00); // cash 300 + receivable 400
+    expect(bs.liabilities.total).toBe(100_00); // SSNIT payable
+    expect(bs.equity.total).toBe(600_00); // current-year surplus (accumulated fund has no movement)
+    expect(bs.netIncomeToDate).toBe(600_00);
+    expect(bs.totals.assets).toBe(bs.totals.liabilitiesAndEquity);
+  });
+
+  test('position as of an earlier date ignores later entries', () => {
+    const bs = buildBalanceSheet(ACCOUNTS, ENTRIES, '2026-02-28');
+    expect(bs.totals.assets).toBe(1200_00); // cash 800 + receivable 400
+    expect(bs.netIncomeToDate).toBe(1200_00); // invoiced revenue, payroll not yet posted
+    expect(bs.balanced).toBe(true);
+  });
+});

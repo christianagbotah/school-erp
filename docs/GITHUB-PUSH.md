@@ -4,6 +4,10 @@
 
 - The repository receives direct pushes from this workspace on `main`
   (credentials provided by the owner on 30 October 2026 — see git history).
+- **Verified in sync:** local `main` == `school-erp/main` (0 ahead / 0 behind;
+  dry-run push clean on 30 October 2026).
+- GitHub Actions CI (`.github/workflows/ci.yml`) runs on every push/PR to
+  `main`: bun install → prisma push → seed → lint → boot dev server → 48 tests.
 - Commit convention: conventional commits (`feat:`, `fix:`, `docs:`, …) with
   scope tags (`feat(payroll):`, `fix(security):` …).
 
@@ -26,7 +30,7 @@ bun run db:push
 bunx tsx scripts/seed.ts
 bunx tsx scripts/seed-extras.ts   # salaries, timetables, SBA marks, notifications
 bun run dev                       # http://localhost:3000
-bun test tests/domain.test.ts tests/api.test.ts   # 33/33 passing (server must be up)
+bun test tests/domain.test.ts tests/api.test.ts   # 48/48 passing (server must be up)
 ```
 
 ## Reproducibility on a fresh clone

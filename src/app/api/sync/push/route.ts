@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth, AuthError } from '@/lib/auth';
+import { postJournal } from '@/lib/fee-engine';
 
 // POST /api/sync/push — device pushes captured offline operations
 // At-least-once delivery with idempotent application (operation id = idempotency key)
@@ -157,6 +158,23 @@ async function applyOperation(
         }
       }
       if (!posted) throw lastErr instanceof Error ? lastErr : new Error('payment create failed');
+      // double-entry journal (same rules as the online cashier route):
+      // Dr Cash/MoMo/Bank, Cr Accounts Receivable. Payment stays durable even
+      // if the journal fails — the money is captured, posting can be repaired.
+      const cashAccount = method === 'cash' ? '1000' : method === 'momo' ? '1020' : '1010';
+      await postJournal(db, {
+        tenantId,
+        schoolId: student.schoolId,
+        date: new Date(),
+        memo: `Offline fee payment — ${student.firstName} ${student.lastName} (receipt ${offlineReceiptNo ?? 'n/a'})`,
+        sourceModule: 'payments',
+        sourceRef: `payment:${student.id}`,
+        postedById: auth.user.id,
+        lines: [
+          { accountCode: cashAccount, debit: Math.round(amount) },
+          { accountCode: '1100', credit: Math.round(amount) },
+        ],
+      }).catch(() => undefined);
       return { status: 'applied' };
     }
 

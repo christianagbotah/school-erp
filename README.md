@@ -29,6 +29,7 @@ project with its own schema, design system, tests and documentation.
 | **Report cards** (new): terminal reports with SBA weighted totals, NaCCA-style grade bands, class position, attendance & fees position, auto remarks, KG observation mode, printable A4 | **Implemented + browser-verified** (staff any learner; parents/students scoped to wards) | `/api/report-cards`, Report Cards view |
 | **Analytics** (new): attendance trend, enrollment by stage/gender, collections by month & channel, arrears and attendance by class | **Implemented + browser-verified** | `/api/analytics`, Analytics view (recharts) |
 | **Debtors & arrears** (new): aging buckets (current / 1–30 / 31–60 / 60+), guardian contacts, printable report + reminder letters | **Implemented + browser-verified** | `/api/finance/debtors`, Debtors view |
+| **Financial statements** (new): trial balance, income statement, balance sheet built from posted journals; balanced/out-of-balance surfaced; invoice generation now posts accrual journals (Dr AR / Cr revenue) atomically; offline-synced payments journal Dr Cash / Cr AR | **Implemented + tested + browser-verified** (TB ties Dr = Cr; A = L + E) | `/api/finance/reports`, Financial Reports view |
 | **Timetable** (new): weekly grid P1–P6 Mon–Fri, subject/teacher/room editing (academic head+), teacher personal schedule, printable | **Implemented + browser-verified** (slot edited SCI → FRENCH) | `/api/timetable`, Timetable view |
 | **Notices & announcements** (new): compose with audience targeting, notification fan-out | **Implemented + browser-verified** (8 recipients notified) | `/api/announcements`, Notices view |
 | **Command palette ⌘K** (new): view navigation, sync, theme, sign-out | **Implemented + browser-verified** | `src/components/command-palette.tsx` |
@@ -57,7 +58,7 @@ bun run db:push          # apply schema
 bunx tsx scripts/seed.ts # demo school (fabricated data, no real records)
 bunx tsx scripts/seed-extras.ts # salaries, full timetables, SBA marks, notifications
 bun run dev              # http://localhost:3000
-bun test tests/domain.test.ts tests/api.test.ts   # 33 tests (server must be running)
+bun test tests/domain.test.ts tests/api.test.ts   # 48 tests (server must be running)
 bun run lint
 ```
 
@@ -88,4 +89,14 @@ bun run lint
 Work is committed on `main` and **pushed to github.com/christianagbotah/school-erp**
 (see `git log` for the full history; this milestone adds payroll pay-runs, report cards,
 analytics, debtors aging, timetables, notices, command palette, notification center,
-dark mode — 33 tests passing).
+dark mode, and financial statements (trial balance / income statement / balance sheet)
+with accrual journaling on invoice generation and offline payments — 48 tests passing,
+GitHub Actions CI + Docker container included).
+
+## CI / Docker
+
+- `.github/workflows/ci.yml` — bun install → prisma push → seed → lint → boot dev
+  server → run all 48 tests on every push/PR to `main`.
+- `Dockerfile` + `docker-entrypoint.sh` — multi-stage build (standalone output);
+  first boot applies the schema and seeds the fabricated demo school.
+  `docker build -t school-erp . && docker run -p 3000:3000 -v school-erp-db:/app/db school-erp`

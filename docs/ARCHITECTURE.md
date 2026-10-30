@@ -88,6 +88,19 @@ Revenue …). Fee payments post Dr cash-method account / Cr fees receivable — 
 collected is not fabricated as revenue. Period locks, bank reconciliation and the
 full chart-of-accounts maintenance UI are planned next-phase work.
 
+**Accrual completion (30 Oct 2026).** `postJournalOn(tx, …)` allows journaling
+inside a caller's transaction. Invoice generation now posts the accrual entry
+atomically with each invoice (Dr 1100 Accounts Receivable / Cr revenue accounts
+from `FeeItem.revenueAccountCode`, seeded 4001 tuition / 4002 other), so revenue
+exists in the ledger when earned, not when cash arrives. Offline-synced payments
+post the same entries as the online cashier route (Dr cash-method / Cr 1100),
+keeping the GL complete for disconnected collections. Financial statements
+(`src/lib/finance-reports.ts`, pure logic) derive the trial balance, income
+statement and balance sheet strictly from **posted** entries: draft and reversed
+journals never appear, the trial balance exposes out-of-balance ledgers honestly,
+and the balance sheet carries the current-year surplus (revenue less expenses to
+date) inside equity — A = L + E is asserted in tests and browser-verified.
+
 ## ADR-006 — Assessment: profiles preserve provenance; early years never get exams
 
 Assessment profiles carry `provenance` (`official_nacca | official_waec | school`) and

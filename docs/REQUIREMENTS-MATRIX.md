@@ -11,7 +11,7 @@ integration verified → offline verified → cross-platform verified → releas
 | # | Brief § | Requirement | State | Evidence / Notes |
 |---|---|---|---|---|
 | 1 | §2 | Greenfield project, own schema/design/tests/docs, new repo | DONE (impl) | No legacy code used; fresh schema; commits on `main` |
-| 2 | §2 | Mandatory Git workflow → `christianagbotah/school-erp` | **PARTIAL — BLOCKED (push auth)** | Remote configured; repo confirmed empty; no SSH/token in environment. Local commits + source package delivered; see `docs/GITHUB-PUSH.md` |
+| 2 | §2 | Mandatory Git workflow → `christianagbotah/school-erp` | DONE (verified) | Remote configured with owner credential; local `main` == `school-erp/main` (0 ahead/0 behind, dry-run push clean); GitHub Actions CI on push |
 | 3 | §3 | Ghana research → versioned config packs | PARTIAL | `ghana-config.ts` (stages KG1–B9, CCP subjects, BECE vs CCP distinction, PAYE/SSNIT pack, phone norm). Full document-level provenance register pending |
 | 4 | §4 | Tenant → organization → school → campus hierarchy | DONE (impl) | Schema; demo school with Main + Ashiyie branch |
 | 5 | §4 | Control plane vs tenant plane; tenant→database registry | DONE (impl) | `Tenant.dbAssignment`; membership-scoped queries; per-tenant DB = production tier |
@@ -59,7 +59,7 @@ integration verified → offline verified → cross-platform verified → releas
 | 47 | §15 | Overpayment/allocation bounds atomic under concurrency | DONE (impl) | `allocatePayment` tx checks cumulative caps; concurrency race tests planned |
 | 48 | §15 | Till/shift open-close-handover, shortages | PLANNED | — |
 | 49 | §16 | Double-entry GL, balanced journals, source links, reversals | DONE (verified) | postJournal + browser-verified balanced entry; reversal flow planned |
-| 50 | §16 | Trial balance, income statement, balance sheet reports | PLANNED | — |
+| 50 | §16 | Trial balance, income statement, balance sheet reports | DONE (verified) | `src/lib/finance-reports.ts` + `/api/finance/reports` (role-gated bursar/accountant/head/proprietor); TB Dr=Cr verified in tests + browser; A = L + E incl. current-year surplus; draft/reversed entries excluded; gap found & closed: invoice generation now posts accrual journals atomically (Dr 1100 / Cr 4001·4002), offline payments journal Dr cash / Cr 1100 |
 | 51 | §17 | HR: staff records, employment data | DONE (impl) | 10 staff seeded |
 | 52 | §17 | Payroll: versioned Ghana rule pack (SSNIT/PAYE) | DONE (verified) | pack + computation tested; pay-run workflow planned |
 | 53 | §18 | Transport: vehicles, routes, stops, enrollment, trips | DONE (impl) | seeded; conductor app + GPS planned |
@@ -76,12 +76,12 @@ integration verified → offline verified → cross-platform verified → releas
 | 64 | §26 | Role-scoped dashboards, trend charts, arrears analytics | DONE (verified) | browser-verified KPIs, attendance trend, arrears by class |
 | 65 | §27 | Fresh install from empty DB, no legacy dependency | DONE (verified) | seed runs on empty DB; no legacy imports |
 | 66 | §27 | CSV/XLSX import/export templates | PARTIAL | invoices CSV export in UI; import wizard planned |
-| 67 | §28 | CI, Docker, monitoring, backups | PARTIAL | reproducible seed + tests; container assets planned |
+| 67 | §28 | CI, Docker, monitoring, backups | PARTIAL | `.github/workflows/ci.yml` (install→push→seed→lint→serve→48 tests) on push/PR; `Dockerfile` multi-stage standalone + first-boot seed entrypoint. Monitoring/backups still planned |
 | 68 | §29 | Vertical slices with real persistence + offline early | DONE (verified) | payment slice verified through GL |
 | 69 | §30 | Truthful per-module states (no inflation) | DONE (verified) | this matrix |
 | 70 | §31 | Acceptance scenarios 1–15 (tenancy/finance) | PARTIAL | covered: isolation (T-2/3), duplicate prevention (F-6/7 partial), offline receipts (F-11 partial), idempotent replay (F-12) |
 | 71 | §31 | Acceptance scenarios 16–32 (academics/ops/resilience) | PARTIAL | covered: SBA raw/exempt/conflict (A-17), attendance correctness (A-21 partial), T-30 stale-authority replay REJECTED with evidence preserved (browser-verified), A-18 live weighted totals in gradebook |
-| 72 | §32 | Codex review package | PARTIAL | this docs set + source package; remote push pending owner auth |
+| 72 | §32 | Codex review package | PARTIAL | docs set + source package + pushed repo with CI; remote verified in sync |
 
 **Not-run / blocked register:** Hubtel live verification (no merchant credentials),
 native platform builds (no toolchains), 72-hour disconnected soak (no long-lived

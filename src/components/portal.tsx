@@ -16,6 +16,7 @@ import AnalyticsView from '@/components/views/analytics-view';
 import ReportCardsView from '@/components/views/report-cards-view';
 import PayrollView from '@/components/views/payroll-view';
 import DebtorsView from '@/components/views/debtors-view';
+import FinancialReportsView from '@/components/views/financial-reports-view';
 import TimetableView from '@/components/views/timetable-view';
 import AnnouncementsView from '@/components/views/announcements-view';
 import type { ViewKey } from '@/components/command-palette';
@@ -32,6 +33,7 @@ const NAV: Record<ViewKey, { label: string; roles: string[] }> = {
   cashier: { label: 'Collections', roles: ['cashier', 'accountant', 'bursar', 'headteacher'] },
   debtors: { label: 'Debtors', roles: ['bursar', 'accountant', 'headteacher', 'proprietor', 'cashier'] },
   payroll: { label: 'Payroll', roles: ['bursar', 'accountant', 'headteacher', 'proprietor'] },
+  financials: { label: 'Financial Reports', roles: ['bursar', 'accountant', 'headteacher', 'proprietor'] },
   notices: { label: 'Notices', roles: ['*'] },
   sync: { label: 'Sync Console', roles: ['*'] },
 };
@@ -47,6 +49,7 @@ const VIEWS: Record<ViewKey, React.ComponentType> = {
   fees: FeesView,
   cashier: CashierView,
   debtors: DebtorsView,
+  financials: FinancialReportsView,
   payroll: PayrollView,
   notices: AnnouncementsView,
   sync: SyncConsoleView,

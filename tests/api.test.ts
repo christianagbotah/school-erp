@@ -223,3 +223,108 @@ describe('SBA marks validation', () => {
     expect(results[0]).toContain('exceeds');
   });
 });
+
+describe('financial reports — role gating and ledger integrity', () => {
+  test('unauthenticated access is rejected', async () => {
+    const { status } = await api('/api/finance/reports?type=trial-balance');
+    expect(status).toBe(401);
+  });
+
+  test('cashier is denied financial statements (403)', async () => {
+    const { cookie } = await login('cashier@lightworld.edu.gh');
+    const { status } = await api('/api/finance/reports?type=trial-balance', { cookie });
+    expect(status).toBe(403);
+  });
+
+  test('teacher is denied financial statements (403)', async () => {
+    const { cookie } = await login('teacher@lightworld.edu.gh');
+    const { status } = await api('/api/finance/reports?type=balance-sheet', { cookie });
+    expect(status).toBe(403);
+  });
+
+  test('bursar gets a balanced trial balance from posted entries', async () => {
+    const { cookie } = await login('bursar@lightworld.edu.gh');
+    const { status, data } = await api('/api/finance/reports?type=trial-balance', { cookie });
+    expect(status).toBe(200);
+    const tb = (data as { trialBalance: { rows: unknown[]; totals: { debits: number; credits: number }; balanced: boolean } }).trialBalance;
+    expect(tb.rows.length).toBeGreaterThan(0);
+    expect(tb.balanced).toBe(true);
+    expect(tb.totals.debits).toBe(tb.totals.credits);
+    expect(tb.totals.debits).toBeGreaterThan(0);
+  });
+
+  test('invoice generation accrues revenue; payment moves cash — statements reflect both', async () => {
+    const { cookie } = await login('bursar@lightworld.edu.gh');
+
+    // tenant context
+    const boot = await api('/api/bootstrap');
+    const schoolId = (boot.data as { tenants: { schools: { id: string }[] }[] }).tenants[0].schools[0].id;
+    const plansRes = await api('/api/fees/plans', { cookie });
+    const { plans, years } = plansRes.data as { plans: { id: string }[]; years: { id: string; isCurrent: boolean; terms: { id: string; isCurrent: boolean }[] }[] };
+    const curYear = years.find((y) => y.isCurrent) ?? years[0];
+    const academicYearId = curYear.id;
+    const termId = curYear.terms.find((t) => t.isCurrent)?.id ?? curYear.terms[0]?.id ?? null;
+    const studentsRes = await api('/api/students?pageSize=6', { cookie });
+    const students = (studentsRes.data as { students: { id: string }[] }).students;
+
+    // generate an invoice for the first (student, plan) combo not already invoiced —
+    // generation now posts the accrual journal (Dr AR / Cr revenue) atomically
+    let generated = false;
+    outer: for (const plan of plans.slice(0, 3)) {
+      for (const s of students) {
+        const gen = await api('/api/fees/generate', {
+          method: 'POST', cookie,
+          body: JSON.stringify({ schoolId, academicYearId, termId, planId: plan.id, dueDate: '2026-12-15', studentIds: [s.id] }),
+        });
+        if (gen.status === 200 && (gen.data as { generated: number }).generated === 1) {
+          generated = true;
+          break outer;
+        }
+      }
+    }
+    expect(generated).toBe(true);
+
+    // offline payment capture (cashier) — now journals Dr Cash / Cr AR too
+    const { cookie: cashierCookie } = await login('cashier@lightworld.edu.gh');
+    const classes = await api('/api/classes', { cookie: cashierCookie });
+    const cls = (classes.data as { classes: { id: string }[] }).classes[0];
+    const roster = await api(`/api/attendance?classId=${cls.id}&date=2026-11-05`, { cookie: cashierCookie });
+    const studentId = (roster.data as { roster: { studentId: string }[] }).roster[0].studentId;
+    const opId = `test-finrep-${Date.now()}`;
+    const push = await api('/api/sync/push', {
+      method: 'POST', cookie: cashierCookie,
+      body: JSON.stringify({
+        deviceId: 'TEST-FINREP',
+        operations: [{ id: opId, entityType: 'payment', opType: 'create', payload: { studentId, method: 'cash', amount: 250_00, offlineReceiptNo: `OFF-FINREP-${opId}` } }],
+      }),
+    });
+    expect((push.data as { results: { status: string }[] }).results[0].status).toBe('applied');
+
+    // income statement must now show revenue from the generated invoice
+    const { status, data } = await api('/api/finance/reports?type=income-statement&from=2020-01-01', { cookie });
+    expect(status).toBe(200);
+    const is = (data as { incomeStatement: { totalRevenue: number; totalExpense: number; netIncome: number } }).incomeStatement;
+    expect(is.totalRevenue).toBeGreaterThan(0);
+    expect(is.netIncome).toBe(is.totalRevenue - is.totalExpense);
+
+    // trial balance still ties after both postings
+    const tbRes = await api('/api/finance/reports?type=trial-balance', { cookie });
+    const tb = (tbRes.data as { trialBalance: { balanced: boolean } }).trialBalance;
+    expect(tb.balanced).toBe(true);
+  });
+
+  test('balance sheet satisfies assets = liabilities + equity', async () => {
+    const { cookie } = await login('proprietor@lightworld.edu.gh');
+    const { status, data } = await api('/api/finance/reports?type=balance-sheet', { cookie });
+    expect(status).toBe(200);
+    const bs = (data as { balanceSheet: { totals: { assets: number; liabilitiesAndEquity: number }; balanced: boolean } }).balanceSheet;
+    expect(bs.totals.assets).toBe(bs.totals.liabilitiesAndEquity);
+    expect(bs.balanced).toBe(true);
+  });
+
+  test('invalid report type is rejected', async () => {
+    const { cookie } = await login('bursar@lightworld.edu.gh');
+    const { status } = await api('/api/finance/reports?type=horoscope', { cookie });
+    expect(status).toBe(400);
+  });
+});

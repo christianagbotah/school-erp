@@ -21,6 +21,7 @@ export type PlanResolution = {
     cadence: string;
     reason: string; // "why this student is charged this item"
     source: string; // student | class | category | campus | school
+    revenueAccountCode: string; // GL revenue account for accrual posting
   }[];
 };
 
@@ -80,6 +81,7 @@ export async function resolveStudentPlan(
         cadence: item.cadence,
         reason: `Charged from plan "${plan.name}" (${plan.scopeType} scope)`,
         source: plan.scopeType,
+        revenueAccountCode: item.feeItem.revenueAccountCode ?? '4002',
       });
     }
   }
@@ -99,6 +101,7 @@ export async function resolveStudentPlan(
         cadence: item.cadence,
         reason: `Inherited from school plan "${schoolPlan.name}"`,
         source: 'school',
+        revenueAccountCode: item.feeItem.revenueAccountCode ?? '4002',
       });
     }
   }
@@ -289,6 +292,29 @@ export async function generateInvoices(
           cadence: i.cadence,
         })),
       });
+
+      // Accrual journal, atomic with the invoice: Dr Accounts Receivable /
+      // Cr revenue accounts (TUITION → 4001, feeding → 4010, other → 4002).
+      const revenueByAccount = new Map<string, number>();
+      for (const i of resolution!.items) {
+        revenueByAccount.set(i.revenueAccountCode, (revenueByAccount.get(i.revenueAccountCode) ?? 0) + i.amount);
+      }
+      await postJournalOn(tx, {
+        tenantId,
+        schoolId,
+        date: issueDate,
+        memo: `Invoice ${invoice.invoiceNo} — ${student.firstName} ${student.lastName} (${resolution!.planName})`,
+        sourceModule: 'fees',
+        sourceRef: `invoice:${invoice.id}`,
+        postedById: params.createdById ?? null,
+        lines: [
+          { accountCode: '1100', debit: subtotal, entityType: 'invoice', entityId: invoice.id },
+          ...[...revenueByAccount.entries()].map(([code, amount]) => ({
+            accountCode: code, credit: amount, entityType: 'invoice', entityId: invoice.id,
+          })),
+        ],
+      });
+
       return invoice;
     });
     results.generated += 1;
@@ -354,56 +380,67 @@ export async function allocatePayment(
  * Double-entry journal posting — rejects unbalanced entries.
  * Dr/Cr per line; total debit must equal total credit.
  */
-export async function postJournal(
-  prisma: PrismaClient,
-  params: {
-    tenantId: string;
-    schoolId: string;
-    date: Date;
-    memo: string;
-    sourceModule?: string;
-    sourceRef?: string;
-    lines: { accountCode: string; debit?: number; credit?: number; memo?: string; entityType?: string; entityId?: string }[];
-    postedById?: string;
+type JournalParams = {
+  tenantId: string;
+  schoolId: string;
+  date: Date;
+  memo: string;
+  sourceModule?: string;
+  sourceRef?: string;
+  lines: { accountCode: string; debit?: number; credit?: number; memo?: string; entityType?: string; entityId?: string }[];
+  postedById?: string;
+};
+type ExecutableClient = PrismaClient | Prisma.TransactionClient;
+
+/**
+ * Post a journal within the caller's transaction. Validates balance and
+ * account codes, then writes the entry header + lines. Use this variant when
+ * the journal must be atomic with other writes (e.g. invoice creation).
+ */
+export async function postJournalOn(tx: Prisma.TransactionClient, params: JournalParams): Promise<string> {
+  const totalDebit = params.lines.reduce((s, l) => s + (l.debit ?? 0), 0);
+  const totalCredit = params.lines.reduce((s, l) => s + (l.credit ?? 0), 0);
+  if (totalDebit !== totalCredit) {
+    throw new Error(`Unbalanced journal: Dr ${totalDebit} ≠ Cr ${totalCredit}`);
   }
-): Promise<string> {
-  return prisma.$transaction(async (tx) => {
-    const totalDebit = params.lines.reduce((s, l) => s + (l.debit ?? 0), 0);
-    const totalCredit = params.lines.reduce((s, l) => s + (l.credit ?? 0), 0);
-    if (totalDebit !== totalCredit) {
-      throw new Error(`Unbalanced journal: Dr ${totalDebit} ≠ Cr ${totalCredit}`);
-    }
-    const accounts = await tx.glAccount.findMany({ where: { tenantId: params.tenantId, schoolId: params.schoolId } });
-    const byCode = new Map(accounts.map((a) => [a.code, a]));
-    for (const line of params.lines) {
-      if (!byCode.has(line.accountCode)) throw new Error(`Unknown GL account ${line.accountCode}`);
-    }
-    const seq = (await tx.journalEntry.count({ where: { schoolId: params.schoolId } })) + 1;
-    const entry = await tx.journalEntry.create({
-      data: {
-        tenantId: params.tenantId,
-        schoolId: params.schoolId,
-        entryNo: `JE-${year2(params.date)}-${String(seq).padStart(5, '0')}`,
-        date: params.date,
-        memo: params.memo,
-        sourceModule: params.sourceModule,
-        sourceRef: params.sourceRef,
-        postedById: params.postedById ?? null,
-      },
-    });
-    await tx.journalLine.createMany({
-      data: params.lines.map((l) => ({
-        tenantId: params.tenantId,
-        entryId: entry.id,
-        accountCode: l.accountCode,
-        accountId: byCode.get(l.accountCode)!.id,
-        debit: l.debit ?? 0,
-        credit: l.credit ?? 0,
-        memo: l.memo ?? null,
-        entityType: l.entityType ?? null,
-        entityId: l.entityId ?? null,
-      })),
-    });
-    return entry.id;
+  const accounts = await tx.glAccount.findMany({ where: { tenantId: params.tenantId, schoolId: params.schoolId } });
+  const byCode = new Map(accounts.map((a) => [a.code, a]));
+  for (const line of params.lines) {
+    if (!byCode.has(line.accountCode)) throw new Error(`Unknown GL account ${line.accountCode}`);
+  }
+  const seq = (await tx.journalEntry.count({ where: { schoolId: params.schoolId } })) + 1;
+  const entry = await tx.journalEntry.create({
+    data: {
+      tenantId: params.tenantId,
+      schoolId: params.schoolId,
+      entryNo: `JE-${year2(params.date)}-${String(seq).padStart(5, '0')}`,
+      date: params.date,
+      memo: params.memo,
+      sourceModule: params.sourceModule,
+      sourceRef: params.sourceRef,
+      postedById: params.postedById ?? null,
+    },
   });
+  await tx.journalLine.createMany({
+    data: params.lines.map((l) => ({
+      tenantId: params.tenantId,
+      entryId: entry.id,
+      accountCode: l.accountCode,
+      accountId: byCode.get(l.accountCode)!.id,
+      debit: l.debit ?? 0,
+      credit: l.credit ?? 0,
+      memo: l.memo ?? null,
+      entityType: l.entityType ?? null,
+      entityId: l.entityId ?? null,
+    })),
+  });
+  return entry.id;
+}
+
+/** Post a balanced journal in its own transaction. */
+export async function postJournal(
+  prisma: ExecutableClient,
+  params: JournalParams
+): Promise<string> {
+  return prisma.$transaction((tx) => postJournalOn(tx, params));
 }

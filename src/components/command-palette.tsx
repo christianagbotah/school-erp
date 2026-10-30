@@ -6,14 +6,15 @@ import {
 } from '@/components/ui/command';
 import {
   Home, CheckSquare, BookOpen, Wallet, Coins, Users, RefreshCw, BarChart3, FileText,
-  Banknote, AlertTriangle, CalendarDays, Megaphone, Moon, Sun, LogOut, CloudUpload,
+  Banknote, AlertTriangle, CalendarDays, Megaphone, Moon, Sun, LogOut, CloudUpload, Landmark,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { fullSync } from '@/lib/client-sync';
 
 export type ViewKey =
   | 'dashboard' | 'attendance' | 'marks' | 'fees' | 'cashier' | 'students' | 'sync'
-  | 'analytics' | 'reports' | 'payroll' | 'debtors' | 'timetable' | 'notices';
+  | 'analytics' | 'reports' | 'payroll' | 'debtors' | 'timetable' | 'notices'
+  | 'financials';
 
 export const VIEW_META: Record<ViewKey, { label: string; icon: React.ComponentType<{ className?: string }>; group: string }> = {
   dashboard: { label: 'Overview', icon: Home, group: 'General' },
@@ -27,6 +28,7 @@ export const VIEW_META: Record<ViewKey, { label: string; icon: React.ComponentTy
   cashier: { label: 'Collections', icon: Coins, group: 'Finance' },
   debtors: { label: 'Debtors & Arrears', icon: AlertTriangle, group: 'Finance' },
   payroll: { label: 'Payroll', icon: Banknote, group: 'Finance' },
+  financials: { label: 'Financial Reports', icon: Landmark, group: 'Finance' },
   notices: { label: 'Notices', icon: Megaphone, group: 'Communications' },
   sync: { label: 'Sync Console', icon: RefreshCw, group: 'System' },
 };
